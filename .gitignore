@@ -2,6 +2,6 @@
 01-bus-gps/data/learned/
 01-bus-gps/data/coverage.geojson
 01-bus-gps/report.qmd
-*/report_files/
+01-bus-gps/report_files/
 .DS_Store
 .quarto/
