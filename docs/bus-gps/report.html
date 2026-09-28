@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Hongwei Peng">
+<meta name="dcterms.date" content="2026-09-29">
+
+<title>Bus GPS Processing in London Live</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap-c2e55264ed47ce3b2e0326a2269f9400.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#scope-and-how-to-read-this-document" id="toc-scope-and-how-to-read-this-document" class="nav-link" data-scroll-target="#scope-and-how-to-read-this-document"><span class="header-section-number">1</span> Scope and how to read this document</a></li>
+  <li><a href="#sec-data" id="toc-sec-data" class="nav-link" data-scroll-target="#sec-data"><span class="header-section-number">2</span> Data source: BODS SIRI-VM</a>
+  <ul class="collapse">
+  <li><a href="#coverage" id="toc-coverage" class="nav-link" data-scroll-target="#coverage"><span class="header-section-number">2.1</span> Coverage</a></li>
+  <li><a href="#source" id="toc-source" class="nav-link" data-scroll-target="#source"><span class="header-section-number">2.2</span> Source</a></li>
+  <li><a href="#methodology" id="toc-methodology" class="nav-link" data-scroll-target="#methodology"><span class="header-section-number">2.3</span> Methodology</a></li>
+  <li><a href="#quality" id="toc-quality" class="nav-link" data-scroll-target="#quality"><span class="header-section-number">2.4</span> Quality</a></li>
+  </ul></li>
+  <li><a href="#sec-pipeline" id="toc-sec-pipeline" class="nav-link" data-scroll-target="#sec-pipeline"><span class="header-section-number">3</span> Pipeline overview</a></li>
+  <li><a href="#sec-journeys" id="toc-sec-journeys" class="nav-link" data-scroll-target="#sec-journeys"><span class="header-section-number">4</span> Journeys: from a vehicle’s stream to trips</a></li>
+  <li><a href="#sec-learning" id="toc-sec-learning" class="nav-link" data-scroll-target="#sec-learning"><span class="header-section-number">5</span> Route shape learning</a>
+  <ul class="collapse">
+  <li><a href="#problem" id="toc-problem" class="nav-link" data-scroll-target="#problem"><span class="header-section-number">5.1</span> Problem</a></li>
+  <li><a href="#seed" id="toc-seed" class="nav-link" data-scroll-target="#seed"><span class="header-section-number">5.2</span> Seed</a></li>
+  <li><a href="#corridor-fit" id="toc-corridor-fit" class="nav-link" data-scroll-target="#corridor-fit"><span class="header-section-number">5.3</span> Corridor fit</a></li>
+  <li><a href="#stop-anchoring-and-smoothing" id="toc-stop-anchoring-and-smoothing" class="nav-link" data-scroll-target="#stop-anchoring-and-smoothing"><span class="header-section-number">5.4</span> Stop anchoring and smoothing</a></li>
+  <li><a href="#quality-gate" id="toc-quality-gate" class="nav-link" data-scroll-target="#quality-gate"><span class="header-section-number">5.5</span> Quality gate</a></li>
+  <li><a href="#sec-repair" id="toc-sec-repair" class="nav-link" data-scroll-target="#sec-repair"><span class="header-section-number">5.6</span> Coverage measurement and the repair path</a></li>
+  <li><a href="#scheduling" id="toc-scheduling" class="nav-link" data-scroll-target="#scheduling"><span class="header-section-number">5.7</span> Scheduling</a></li>
+  </ul></li>
+  <li><a href="#sec-kalman" id="toc-sec-kalman" class="nav-link" data-scroll-target="#sec-kalman"><span class="header-section-number">6</span> Snapping and along-route filtering</a>
+  <ul class="collapse">
+  <li><a href="#two-models-side-by-side" id="toc-two-models-side-by-side" class="nav-link" data-scroll-target="#two-models-side-by-side"><span class="header-section-number">6.1</span> Two models side by side</a></li>
+  <li><a href="#snap-hysteresis" id="toc-snap-hysteresis" class="nav-link" data-scroll-target="#snap-hysteresis"><span class="header-section-number">6.2</span> Snap hysteresis</a></li>
+  <li><a href="#the-filter" id="toc-the-filter" class="nav-link" data-scroll-target="#the-filter"><span class="header-section-number">6.3</span> The filter</a></li>
+  <li><a href="#what-the-map-shows-between-fixes" id="toc-what-the-map-shows-between-fixes" class="nav-link" data-scroll-target="#what-the-map-shows-between-fixes"><span class="header-section-number">6.4</span> What the map shows between fixes</a></li>
+  </ul></li>
+  <li><a href="#sec-diversions" id="toc-sec-diversions" class="nav-link" data-scroll-target="#sec-diversions"><span class="header-section-number">7</span> Diversion detection</a>
+  <ul class="collapse">
+  <li><a href="#definitions" id="toc-definitions" class="nav-link" data-scroll-target="#definitions"><span class="header-section-number">7.1</span> Definitions</a></li>
+  <li><a href="#what-counts-as-an-excursion" id="toc-what-counts-as-an-excursion" class="nav-link" data-scroll-target="#what-counts-as-an-excursion"><span class="header-section-number">7.2</span> What counts as an excursion</a></li>
+  <li><a href="#guards-each-with-the-false-positive-that-motivated-it" id="toc-guards-each-with-the-false-positive-that-motivated-it" class="nav-link" data-scroll-target="#guards-each-with-the-false-positive-that-motivated-it"><span class="header-section-number">7.3</span> Guards, each with the false positive that motivated it</a></li>
+  <li><a href="#from-excursions-to-events" id="toc-from-excursions-to-events" class="nav-link" data-scroll-target="#from-excursions-to-events"><span class="header-section-number">7.4</span> From excursions to events</a></li>
+  <li><a href="#lifecycle" id="toc-lifecycle" class="nav-link" data-scroll-target="#lifecycle"><span class="header-section-number">7.5</span> Lifecycle</a></li>
+  <li><a href="#matching-to-tfl-road-disruptions" id="toc-matching-to-tfl-road-disruptions" class="nav-link" data-scroll-target="#matching-to-tfl-road-disruptions"><span class="header-section-number">7.6</span> Matching to TfL road disruptions</a></li>
+  <li><a href="#case-studies" id="toc-case-studies" class="nav-link" data-scroll-target="#case-studies"><span class="header-section-number">7.7</span> Case studies</a></li>
+  <li><a href="#what-the-detector-produced" id="toc-what-the-detector-produced" class="nav-link" data-scroll-target="#what-the-detector-produced"><span class="header-section-number">7.8</span> What the detector produced</a></li>
+  </ul></li>
+  <li><a href="#sec-flow" id="toc-sec-flow" class="nav-link" data-scroll-target="#sec-flow"><span class="header-section-number">8</span> Bus Flow: corridor journey density</a></li>
+  <li><a href="#sec-ops" id="toc-sec-ops" class="nav-link" data-scroll-target="#sec-ops"><span class="header-section-number">9</span> Operational footprint</a></li>
+  <li><a href="#sec-limits" id="toc-sec-limits" class="nav-link" data-scroll-target="#sec-limits"><span class="header-section-number">10</span> Limitations and what data would help</a></li>
+  <li><a href="#sec-repro" id="toc-sec-repro" class="nav-link" data-scroll-target="#sec-repro"><span class="header-section-number">11</span> Reproducibility</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#sec-schemas" id="toc-sec-schemas" class="nav-link" data-scroll-target="#sec-schemas">Appendix A. Data schemas</a></li>
+  <li><a href="#sec-params" id="toc-sec-params" class="nav-link" data-scroll-target="#sec-params">Appendix B. Parameters</a></li>
+  <li><a href="#sec-glossary" id="toc-sec-glossary" class="nav-link" data-scroll-target="#sec-glossary">Appendix C. Glossary</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="report.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Bus GPS Processing in London Live</h1>
+<p class="subtitle lead">How route shapes, on-map positions and diversions are derived from the DfT Bus Open Data feed</p>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Hongwei Peng <a href="mailto:hongwei.peng@qmul.ac.uk" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Queen Mary University of London
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">29 September 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>London Live (london.pengrubin.com) shows every bus in Greater London moving along its real route, flags roads that buses are currently diverting around, and colours corridors by how many journeys they carry. All of it is derived from one public input, the Bus Open Data Service SIRI-VM vehicle location feed, which contains GPS positions but no route geometry, no stop times and no notices. This document describes, at a level that allows reimplementation, the four processing stages that turn that feed into those products: journey segmentation, nightly route-shape learning from the traces, on-map snapping with an along-route Kalman filter, and diversion detection with an evidence-based event lifecycle. Every number quoted is measured on 38 days of archived feed data (2026-08-20 to 2026-09-27) and is reproducible from the scripts that accompany the document.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="summary" class="level1 unnumbered">
+<h1 class="unnumbered">Summary</h1>
+<ul>
+<li><strong>One input.</strong> The DfT Bus Open Data Service (BODS) SIRI-VM feed, polled every 15 s for a bounding box around Greater London: about 7.5 MB of XML per poll, 8,850 distinct vehicles on a weekday, 8,708,985 GPS fixes per day. TfL-contracted operators (<code>OperatorRef</code> TFLO) account for 91.4% of fixes.</li>
+<li><strong>No route data is used.</strong> TfL does not publish timetables or route shapes to BODS. Every route path on the map is learned from the buses’ own GPS traces over the last three days and refitted every night: 1,952 route-directions in the current snapshot, median fix-to-path residual 7.9 m.</li>
+<li><strong>Positions on the map are filtered along the learned path.</strong> A one-dimensional Kalman filter runs on arc length, so lateral GPS drift is discarded by projection and buses follow corners between fixes. Between fixes the displayed position coasts with a decaying speed bounded by 96 m, because showing a bus ahead of where it is costs more than showing it behind.</li>
+<li><strong>Diversions are detected from the traces, not from notices.</strong> A vehicle counts as diverting only after five off-path fixes, 60 s and 300 m of real movement, bracketed by on-path fixes on both sides. Two vehicles at the same site make an event; an event turns green only after two vehicles have driven the whole skipped stretch again. Over 31 logged days the detector displayed 6,983 events, a median of 224 per day; 25% of them sit within 250 m of a TfL road disruption record, rising to 43.3% for events with ten or more vehicles on two or more routes.</li>
+<li><strong>It runs on one small instance.</strong> Median resident memory 647 MB, of which the JavaScript heap is 238 MB; the fleet-wide filter costs about 110 covariance updates per second.</li>
+<li><strong>What it cannot do, and what would fix it.</strong> It sees that buses are slow, not how late they are (no stop arrival times). Direction labels in the feed are wrong often enough to be the largest single noise source. Detection has no ground truth, so recall is unknown. TfL’s own diversion records and stop arrival times would close all three gaps; nothing new needs to be collected.</li>
+</ul>
+</section>
+<section id="scope-and-how-to-read-this-document" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Scope and how to read this document</h1>
+<p>This document covers the bus half of London Live: what is done with the vehicle location feed between the moment a poll returns and the moment a bus icon moves or a road turns red. Two companion documents cover the rail side (train positions inferred from arrival countdowns) and the backend (architecture, budgets, cost). They are referenced where a boundary is crossed and otherwise left alone.</p>
+<p>Readers who want the outcome should read the Summary and <a href="#sec-limits" class="quarto-xref">Section&nbsp;10</a>. Readers who want the method should read <a href="#sec-journeys" class="quarto-xref">Section&nbsp;4</a> to <a href="#sec-diversions" class="quarto-xref">Section&nbsp;7</a> in order; each stage’s output is the next stage’s input. Readers who want to reproduce a figure or a number should start at <a href="#sec-repro" class="quarto-xref">Section&nbsp;11</a> and the appendices: every constant named in the text appears in <strong>?@sec-params</strong> with its value, unit and the file it lives in, and every figure is generated by a script listed in <a href="#sec-repro" class="quarto-xref">Section&nbsp;11</a>. Terms such as <em>fix</em>, <em>key</em>, <em>journey</em>, <em>excursion</em> and <em>band</em> are defined on first use and collected in <strong>?@sec-glossary</strong>.</p>
+<p>Two conventions. Times are UTC unless marked BST (London was UTC+1 throughout the measurement period). A <em>route-direction</em>, written as a key <code>OPERATOR:line:direction</code> such as <code>TFLO:11:inbound</code>, is the unit everything is learned and detected per; “route” alone means the line number as a passenger would use it.</p>
+</section>
+<section id="sec-data" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Data source: BODS SIRI-VM</h1>
+<p>This section follows the <em>coverage, source, methodology, quality</em> structure the Department for Transport uses for its own data methodology notes, because the questions a transport data team asks of a feed are the same four.</p>
+<section id="coverage" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="coverage"><span class="header-section-number">2.1</span> Coverage</h2>
+<p>The backend polls the BODS <code>datafeed</code> endpoint with a bounding box that covers Greater London and a margin. Everything inside it is kept, so the data includes TfL-contracted buses, coaches passing through, and outer-London commercial services. <a href="#fig-fleet" class="quarto-xref">Figure&nbsp;1</a> shows the daily totals for the 39 archived days.</p>
+<div id="fig-fleet" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-fleet-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-2-1-fleet-daily.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fleet-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Daily volume of the feed. Weekends carry roughly a fifth fewer vehicles. The two low weekdays are backend outages, not feed outages.
+</figcaption>
+</figure>
+</div>
+<p>On a weekday the feed reports a median of 8,850 distinct vehicles and 8,708,985 fixes across 2,135 route-direction keys; at the weekend, 8,313 vehicles and 7,638,989 fixes. The operator with the TfL contract code, TFLO, produces 91.4% of all fixes; the next largest are NATX (1.5%) and FALC (0.6%). Because the bounding box is generous, some keys belong to services that only clip the edge of London, which matters for the learner in <a href="#sec-learning" class="quarto-xref">Section&nbsp;5</a>: those keys have few complete journeys and are where the learner most often declines to produce a path.</p>
+<p><a href="#fig-minute" class="quarto-xref">Figure&nbsp;2</a> shows the reporting fleet through the day. The weekday morning peak reaches 6,189 vehicles reporting in the same minute at 14:59 UTC; the weekend curve rises later and stays flatter.</p>
+<div id="fig-minute" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-minute-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-2-5-vehicles-per-minute.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-minute-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Vehicles with at least one fix in each minute of the day, median over weekdays and over weekend days.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="source" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="source"><span class="header-section-number">2.2</span> Source</h2>
+<p>SIRI-VM is the CEN vehicle monitoring profile <span class="citation" data-cites="siri">(<a href="#ref-siri" role="doc-biblioref">CEN, 2015</a>)</span>; BODS republishes each operator’s feed unchanged and merges them per request <span class="citation" data-cites="bods">(<a href="#ref-bods" role="doc-biblioref">Department for Transport, 2026</a>)</span>. One poll returns one XML document with one <code>VehicleActivity</code> element per vehicle. <a href="#tbl-fields" class="quarto-xref">Table&nbsp;1</a> lists the fields the backend keeps and what each is used for; everything else in the document is discarded at parse time.</p>
+<div id="tbl-fields" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-fields-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Fields taken from each <code>VehicleActivity</code>. Nothing else in the SIRI document is read.
+</figcaption>
+<div aria-describedby="tbl-fields-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>SIRI-VM field</th>
+<th>Kept as</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>OperatorRef</code> + <code>VehicleRef</code></td>
+<td>vehicle id <code>i</code> (<code>TFLO:LTZ1502</code>)</td>
+<td>identity; <code>VehicleRef</code> alone collides across operators</td>
+</tr>
+<tr class="even">
+<td><code>LineRef</code></td>
+<td>line <code>l</code></td>
+<td>the route as a passenger names it</td>
+</tr>
+<tr class="odd">
+<td><code>DirectionRef</code></td>
+<td>direction <code>r</code>, normalised to <code>inbound</code> / <code>outbound</code> / lower-cased raw / <code>unknown</code></td>
+<td>half of the route-direction key</td>
+</tr>
+<tr class="even">
+<td><code>DestinationName</code></td>
+<td><code>d</code></td>
+<td>popup text; also a hint when directions are mislabelled</td>
+</tr>
+<tr class="odd">
+<td><code>Latitude</code>, <code>Longitude</code></td>
+<td><code>y</code>, <code>x</code> (degrees, 6 d.p.)</td>
+<td>the fix</td>
+</tr>
+<tr class="even">
+<td><code>Bearing</code></td>
+<td><code>b</code> (degrees, or null)</td>
+<td>icon heading when no motion-derived bearing exists</td>
+</tr>
+<tr class="odd">
+<td><code>RecordedAtTime</code></td>
+<td><code>t</code> (epoch seconds)</td>
+<td>the fix time; every filter in this document runs on it, never on wall clock</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The document is not parsed with an XML parser. At 7.5 MB every 15 s a DOM would dominate the process’s memory and garbage-collection time, so the backend scans the text for the element boundaries it needs. One consequence deserves a sentence because it caused an outage: the JavaScript engine’s substring operation returns a view onto the parent string rather than a copy, so a retained route number or destination name silently kept the entire 7.5 MB document alive. Every extracted field is now copied through a byte buffer before it is stored. The companion backend document tells the full story.</p>
+<p>A fix is <em>new</em> when the vehicle’s <code>RecordedAtTime</code> differs from the last one seen for that vehicle. New fixes are appended, one JSON object per line, to a daily file:</p>
+<pre><code>{"k":"TFLO:11:inbound","i":"TFLO:LTZ1502","x":-0.13421,"y":51.49812,"t":1790310329}</code></pre>
+<p><code>k</code> is the route-direction key; the learner, the rollups and the detector are all keyed on it. Files rotate daily in UTC, are kept for seven days and are capped at 2 GB in total; the writer buffers lines and flushes every 5 s so the poll loop never touches the disk. A separate archive job copies each completed day to local storage, which is where the 38 days analysed here come from.</p>
+</section>
+<section id="methodology" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="methodology"><span class="header-section-number">2.3</span> Methodology</h2>
+<p>The statistics in this section come from one streaming pass over the archived daily files (script <code>scan-traces.py</code>), which keeps only the last fix per vehicle in memory and therefore runs in a few minutes per day. Consecutive fixes of the same vehicle give the fix interval and, when 5 to 60 s apart, an implied ground speed. 299,463,832 fix pairs were measured. 0 lines failed to parse.</p>
+<div id="fig-interval" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-interval-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-2-2-fix-interval.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-interval-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Interval between consecutive fixes of the same vehicle. The spikes at about 30 s and 60 s are operator polling cadences; the long tail is dwell and signal loss.
+</figcaption>
+</figure>
+</div>
+<p>The fix interval (<a href="#fig-interval" class="quarto-xref">Figure&nbsp;3</a>) has a median of 41 s and a 90th percentile of 62 s; 10% of pairs are within 15 s and 1% exceed 396 s. 1.2% of pairs are more than five minutes apart. Three thresholds later in the document are set directly by this distribution: the 60 s window inside which ground movement is trusted (<a href="#sec-diversions" class="quarto-xref">Section&nbsp;7</a>), the 600 s gap that splits a vehicle’s day into journeys (<a href="#sec-journeys" class="quarto-xref">Section&nbsp;4</a>), and the process noise of the Kalman filter, which must make a full stop-to-cruise speed change within one typical interval statistically unsurprising (<a href="#sec-kalman" class="quarto-xref">Section&nbsp;6</a>).</p>
+<div id="fig-speed" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-2-4-implied-speed.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Implied speed between fixes 5 to 60 s apart.
+</figcaption>
+</figure>
+</div>
+<p>Implied speed (<a href="#fig-speed" class="quarto-xref">Figure&nbsp;4</a>) has a median of 3.5 m/s and a 90th percentile of 9 m/s; 0.036% of pairs imply more than 40 m/s and are treated as GPS glitches everywhere a speed is used. The feed carries no latency field. The backend measured, at the time the display model was designed, that fixes arrive 10 to 30 s after <code>RecordedAtTime</code>; that figure is quoted from the design note rather than re-measured here because the archive stores fix times, not receipt times.</p>
+</section>
+<section id="quality" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="quality"><span class="header-section-number">2.4</span> Quality</h2>
+<p>Four properties of the feed shape the design more than anything else.</p>
+<p><strong>Positional error is biased, not zero-mean.</strong> In street canyons the same spot drifts by tens of metres in the same direction on every pass. A filter cannot remove bias; projecting the fix onto a known path can discard the lateral component of it, which is the reason the display model works in arc length (<a href="#sec-kalman" class="quarto-xref">Section&nbsp;6</a>). <a href="#fig-cloud" class="quarto-xref">Figure&nbsp;7</a> shows one day of fixes over a learned path: the cloud is tight along most of the route and visibly offset on a few blocks.</p>
+<p><strong>Direction labels are unreliable.</strong> <code>DirectionRef</code> describes the trip the vehicle is scheduled to be on, and it is updated by the operator’s system, not by the GPS. It lags at terminals, is sometimes wrong for a whole trip, and a few operators send the same value all day. <a href="#fig-journeys" class="quarto-xref">Figure&nbsp;6</a> shows a route 11 vehicle whose label alternates correctly on 18 round trips, and still produces 12 fixes more than 80 m from the path of the direction they claim. Three separate guards exist because of this field: the layover split in <a href="#sec-journeys" class="quarto-xref">Section&nbsp;4</a>, the self-overlap test in <a href="#sec-learning" class="quarto-xref">Section&nbsp;5</a> and the opposite-direction reprojection in <a href="#sec-diversions" class="quarto-xref">Section&nbsp;7</a>.</p>
+<p><strong>Deadheads are labelled as service.</strong> Vehicles running to and from the garage keep their last line and direction. On <a href="#fig-cloud" class="quarto-xref">Figure&nbsp;7</a> the sparse tail of fixes south of the learned path is a garage run, not a route variant. The learner’s corridor and trimmed mean exist to ignore exactly this kind of point; the detector’s first-500 m clip and its “wanderer” guard do the same job on the live side.</p>
+<p><strong>Cadence differs by operator.</strong> The 30 s and 60 s spikes in <a href="#fig-interval" class="quarto-xref">Figure&nbsp;3</a> are whole operators reporting on a timer. The display model therefore never assumes a cadence; every timing constant is a bound on real time, not a count of fixes.</p>
+</section>
+</section>
+<section id="sec-pipeline" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Pipeline overview</h1>
+<p><a href="#fig-pipeline" class="quarto-xref">Figure&nbsp;5</a> shows every component that touches bus data and what flows between them. The live path runs once per poll and never blocks on disk or on the batch jobs; the batch path is self-scheduled from freshness stamps and needs no operating-system cron, so a redeploy or a crash cannot leave it unscheduled.</p>
+<div id="fig-pipeline" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-pipeline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-3-1-pipeline.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipeline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Everything that touches bus data. Red: the live path, once per 15 s poll. Black: batch jobs, each scheduled by checking its own last-run stamp. Green: the learned polylines, which are the one artefact every consumer shares.
+</figcaption>
+</figure>
+</div>
+<p>The learned polylines are the hinge of the system. The browser snaps to them, the diversion detector projects onto them, the rollups measure residuals against them and the coverage layer is drawn from them. Everything downstream inherits their quality, which is why the learner has a quality gate that would rather ship no path than a wrong one (<a href="#sec-learning" class="quarto-xref">Section&nbsp;5</a>).</p>
+</section>
+<section id="sec-journeys" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Journeys: from a vehicle’s stream to trips</h1>
+<p>A vehicle’s fixes for a day are one stream. Both the learner and the daily rollups first cut it into <em>journeys</em>, and the cut is the same everywhere: a new journey starts whenever the key changes or the gap to the previous fix exceeds 600 s. A journey is <em>complete</em>, and eligible for learning, when it has at least 15 fixes, at least 2,000 m of ground track and lasts at least 480 s; shorter fragments are counted but not learned from.</p>
+<div id="fig-journeys" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-journeys-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-4-1-journeys.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-journeys-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: One vehicle’s day as arc length along the path of the direction each fix is labelled with. Dashed lines are gaps over 600 s; shaded bands are layovers of 300 s or more within 80 m.
+</figcaption>
+</figure>
+</div>
+<p>Where a vehicle turns round quickly, a 600 s gap never occurs and the outbound trip is glued to the inbound one. For the main learning pass this is harmless: the label changes at the terminus, so the key changes and the journey is cut anyway. It is harmful in the one place a single journey is used as a seed (<a href="#sec-repair" class="quarto-xref">Section&nbsp;5.6</a>), where a glued out-and-back explains the whole fix cloud and wins on recall. Candidate seeds are therefore also cut at <em>layovers</em>: any stretch of 300 s or more in which the vehicle stays within 80 m. Terminal stands are minutes long; bus stops and traffic lights are not. The constants were set after a 591 s stand on route 254 produced exactly this failure. On <a href="#fig-journeys" class="quarto-xref">Figure&nbsp;6</a> the vehicle has 5 gaps over 600 s and 18 layovers.</p>
+<div id="tbl-journeys" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-journeys-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Journey statistics over the 38 archived days. “Complete” applies the learner’s three thresholds.
+</figcaption>
+<div aria-describedby="tbl-journeys-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: right;">All journeys</th>
+<th style="text-align: right;">Complete journeys</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Journeys per weekday (median)</td>
+<td style="text-align: right;">151,778</td>
+<td style="text-align: right;">105,614</td>
+</tr>
+<tr class="even">
+<td>of which TFLO</td>
+<td style="text-align: right;">142,538</td>
+<td style="text-align: right;">98,293</td>
+</tr>
+<tr class="odd">
+<td>Length, median (m)</td>
+<td style="text-align: right;">10,033</td>
+<td style="text-align: right;">12,206</td>
+</tr>
+<tr class="even">
+<td>Duration, median (s)</td>
+<td style="text-align: right;">2,670</td>
+<td style="text-align: right;">3,429</td>
+</tr>
+<tr class="odd">
+<td>Fixes per journey, median</td>
+<td style="text-align: right;">58</td>
+<td style="text-align: right;">76</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>About a third of journeys fail the completeness thresholds (<a href="#tbl-journeys" class="quarto-xref">Table&nbsp;2</a>). Most of the rejected ones are short: garage runs, the tail of a trip after a mislabelled terminus, or a vehicle that reported for a few minutes and went silent. Rejecting them costs the learner nothing, because a route with enough service to be worth drawing produces hundreds of complete journeys in three days.</p>
+</section>
+<section id="sec-learning" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Route shape learning</h1>
+<section id="problem" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="problem"><span class="header-section-number">5.1</span> Problem</h2>
+<p>For each key with at least 5 complete journeys in the last three days of traces, produce a polyline that a bus on that route-direction actually follows, together with a measure of how well it fits. The path must be usable as a projection target: dense, smooth, oriented in the direction of travel, and free of the garage runs, mislabelled trips and GPS drift that the fixes contain.</p>
+<p>Classical map matching <span class="citation" data-cites="newson2009 quddus2007">(<a href="#ref-newson2009" role="doc-biblioref">Newson and Krumm, 2009</a>; <a href="#ref-quddus2007" role="doc-biblioref">Quddus et al., 2007</a>)</span> answers a different question: given a road network, which sequence of road segments did this trace take. It needs a network and it answers per trace. Here there is no route definition to match against for TfL services, and the object wanted is the consensus of hundreds of traces, not any one of them. The approach is therefore closer to a robust average of trajectories than to matching: pick a seed shape, assign every fix to a point on it, and move each point to a trimmed mean of its assigned fixes.</p>
+</section>
+<section id="seed" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="seed"><span class="header-section-number">5.2</span> Seed</h2>
+<p>If a timetable shape exists for the key it is the seed. BODS publishes timetables per operator as TransXChange; a weekly job downloads the Greater London datasets and bakes one prior per key, with the stop positions. TfL does not publish timetables to BODS, so no TFLO key has a prior and the seed is instead the complete journey whose ground length is the median of all complete journeys for that key. Either way the seed is resampled to a vertex every 25 m, capped at 2,500 vertices. <a href="#fig-cloud" class="quarto-xref">Figure&nbsp;7</a> shows a one-day fix cloud over a path seeded this way.</p>
+<div id="fig-cloud" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cloud-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-5-1-cloud-68.png" class="img-fluid figure-img" style="width:60.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cloud-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Route 68 inbound: 11,137 fixes from one day over the path learned from three days. The sparse tail beyond the southern end is a garage run that carries the line’s label.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="corridor-fit" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="corridor-fit"><span class="header-section-number">5.3</span> Corridor fit</h2>
+<p>Every fix of every complete journey is projected onto the seed. A fix whose projection distance exceeds 100 m is ignored outright. The remaining residuals set the <em>corridor</em> half-width:</p>
+<p><span id="eq-corridor"><span class="math display">\[ w = \min\bigl(60,\ \max(30,\ q_{0.9}(\text{residuals}))\bigr) \ \text{m}  \tag{1}\]</span></span></p>
+<p>so a clean route gets a 30 m corridor and a noisy one at most 60 m. Each fix inside the corridor is assigned to the nearer of the two vertices bounding its projection segment. A vertex with fewer than 4 assigned fixes keeps its seed position. Every other vertex moves to the trimmed mean of its fixes: sort by residual, drop the worst 20%, average the rest (<a href="#fig-vertex" class="quarto-xref">Figure&nbsp;8</a>). On the route in <a href="#fig-vertex" class="quarto-xref">Figure&nbsp;8</a> the chosen vertex has 161 assigned fixes of which 32 are trimmed.</p>
+<div id="fig-vertex" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-5-2-vertex-zoom.png" class="img-fluid figure-img" style="width:55.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-vertex-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: One vertex of the route 68 path: the fixes assigned to it, the corridor, the 20% trimmed away and the resulting vertex position.
+</figcaption>
+</figure>
+</div>
+<p>The trimmed mean is what makes the biased drift of <a href="#sec-data" class="quarto-xref">Section&nbsp;2</a> tolerable. A vertex on a block where a third of fixes drift 25 m to one side is pulled by the majority, not the average; and because the trim is by residual to the seed rather than by any absolute distance, it adapts to each vertex’s own spread.</p>
+</section>
+<section id="stop-anchoring-and-smoothing" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="stop-anchoring-and-smoothing"><span class="header-section-number">5.4</span> Stop anchoring and smoothing</h2>
+<p>When a prior exists its stops are used: the nearest vertex within 40 m of each stop is moved half way towards it. This is a display refinement, not a correction, and it never applies to TfL routes, which have no prior. All paths then get one pass of 1-2-1 smoothing (weights 0.25, 0.5, 0.25) to remove per-vertex estimation jitter; the end vertices are left alone.</p>
+</section>
+<section id="quality-gate" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="quality-gate"><span class="header-section-number">5.5</span> Quality gate</h2>
+<p>The fixes are projected again, onto the result this time, on a sample of at most 20,000, and the mean residual is recorded as <code>meanResidualM</code>. A path with a mean residual above 35 m is discarded and the previous night’s file is left in place. The reasoning is asymmetric: a bus drawn on a wrong path looks worse than a bus drawn on its raw GPS position, so the learner is allowed to say no. <a href="#fig-quality" class="quarto-xref">Figure&nbsp;9</a> shows the distribution across the current snapshot.</p>
+<div id="fig-quality" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-quality-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-5-3-learned-quality.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-quality-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: Quality of every learned route in the 2026-09-28 snapshot: mean fix-to-path residual (left) and coverage (right).
+</figcaption>
+</figure>
+</div>
+<p>The snapshot holds 1,952 route-directions, 1,304 of them TfL. The median residual is 7.9 m (7.1 m for TfL routes), the 90th percentile 16.3 m and the worst shipped path 34.4 m. The median path was learned from 98 journeys. An independent check from the disruption work gives the same picture: the median distance from a closed bus stop’s surveyed position to the learned path of a route serving it is 5 m.</p>
+</section>
+<section id="sec-repair" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="sec-repair"><span class="header-section-number">5.6</span> Coverage measurement and the repair path</h2>
+<p>The residual gate has a blind spot. It measures how far fixes are from the path, but only for fixes that project onto the path within 100 m; a fix that lies on a part of the route the path never reaches is simply not counted. So a path that is too short, or that follows the wrong variant, can pass the gate with a small residual: the fixes it does cover fit it well, and the fixes it misses are invisible to the test. That happens whenever the seed was a bad journey, typically a short working (a trip that turns back half way) or an out-and-back glued together by a quick turnaround.</p>
+<p><em>Coverage</em> closes the blind spot by looking at every fix: it is the fraction of all the key’s journey fixes that fall inside the finished path’s corridor. <a href="#fig-lowcov" class="quarto-xref">Figure&nbsp;10</a> shows a path with a residual of 8.8 m that passes the gate, yet leaves 20.8% of its fixes outside the corridor because the seed journey never took the western loop.</p>
+<div id="fig-lowcov" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lowcov-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-5-4-low-coverage.png" class="img-fluid figure-img" style="width:90.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lowcov-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10: Route 244 outbound: a path that covers only 0.788 of its fixes. The uncovered loop is a service variant the median seed did not take.
+</figcaption>
+</figure>
+</div>
+<p>For London operators, a coverage below 0.9 triggers a repair, which means choosing a better seed and fitting again. The median-length journey is replaced by the journey that best explains the whole fix cloud. Up to 400 candidate journeys, most-fixes first and additionally cut at layovers, are each scored: <em>recall</em> is the share of the key’s fixes (sampled to 15,000) that lie within 60 m of the candidate, and <em>precision</em> is the share of the candidate’s own vertices that have at least 3 fixes projecting onto them. The candidate with the highest product wins; recall alone would favour any long wandering journey, precision alone any short clean one. A candidate that retraces itself, with more than 30% of its vertices within 30 m of an earlier, non-adjacent part of its own path, is rejected as an out-and-back, which is the failure that layover cutting does not always catch. The winner becomes the seed and the whole fit of <a href="#sec-learning" class="quarto-xref">Section&nbsp;5</a> is repeated. The repaired path replaces the original only if its coverage is higher; otherwise the original stays, on the principle that a repair must prove itself on the same measure that triggered it. The restriction to London operators is deliberate: coach and country services legitimately stray (motorway variants, diversions that last weeks), and re-seeding them from one journey would do harm.</p>
+<p>In the current snapshot 687 paths have coverage below 0.9 after repair; the median coverage is 0.912 and the 10th percentile 0.71. The route in <a href="#fig-lowcov" class="quarto-xref">Figure&nbsp;10</a> is one of the unrepaired ones: no single journey explains both variants, and the fit stays with the majority.</p>
+</section>
+<section id="scheduling" class="level2" data-number="5.7">
+<h2 data-number="5.7" class="anchored" data-anchor-id="scheduling"><span class="header-section-number">5.7</span> Scheduling</h2>
+<p>The learner runs inside the backend’s scheduler: on startup it runs if the last successful run is more than 20 h old, then every 24 h, with a 60 s delay after boot so the first polls land. The prior fetch runs first when priors are missing or older than 7 days. Each run is a child process with a 45 min timeout; failures are logged and retried at the next cycle and never affect serving. A run is a full recompute from the three-day window and is idempotent; keys that currently lack data keep their previous file. Memory is bounded by processing keys in chunks of at most four million fixes (about 100 MB). <a href="#tbl-learner" class="quarto-xref">Table&nbsp;3</a> summarises one run on the three days ending 2026-09-27.</p>
+<div id="tbl-learner" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-learner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: One learner run, reproduced locally on the archived traces.
+</figcaption>
+<div aria-describedby="tbl-learner-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Keys seen in the three-day window</td>
+<td style="text-align: right;">2,210</td>
+</tr>
+<tr class="even">
+<td>Skipped: fewer than 5 complete journeys</td>
+<td style="text-align: right;">563</td>
+</tr>
+<tr class="odd">
+<td>Keys fitted</td>
+<td style="text-align: right;">1,647</td>
+</tr>
+<tr class="even">
+<td>Paths written</td>
+<td style="text-align: right;">1,647</td>
+</tr>
+<tr class="odd">
+<td>Skipped: degenerate seed</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td>Skipped: residual above 35 m</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td>Low-coverage repairs kept (coverage improved)</td>
+<td style="text-align: right;">543</td>
+</tr>
+<tr class="even">
+<td>Mean residual over fitted keys (m)</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td>Wall-clock time on a laptop (min)</td>
+<td style="text-align: right;">29</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+</section>
+<section id="sec-kalman" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Snapping and along-route filtering</h1>
+<p>Everything in this section runs in the browser and affects only where a bus icon is drawn. Its output is never sent back to the server: the route learner (<a href="#sec-learning" class="quarto-xref">Section&nbsp;5</a>) and the diversion detector (<a href="#sec-diversions" class="quarto-xref">Section&nbsp;7</a>) both work from the raw fixes as reported, so a filter that pulls positions towards the path can neither reinforce last night’s path nor hide the departures the detector is looking for.</p>
+<section id="two-models-side-by-side" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="two-models-side-by-side"><span class="header-section-number">6.1</span> Two models side by side</h2>
+<p>Every bus on the map is driven by a <em>raw model</em>: the last two distinct fixes give a velocity, the position is extrapolated from the last fix time along that velocity, and the icon eases towards the result. This model needs no route and serves every vehicle. When a learned path exists for the bus’s key, a second model, the <em>filtered model</em>, runs alongside it and takes over the drawing. The raw model keeps two jobs it never gives up: it decides whether the filtered model is engaged, and it seeds the filter when it engages. The filter is not allowed to vote on its own engagement, because a filter that is confidently wrong would otherwise keep itself alive.</p>
+</section>
+<section id="snap-hysteresis" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="snap-hysteresis"><span class="header-section-number">6.2</span> Snap hysteresis</h2>
+<p>The raw model’s eased position is projected onto the learned path. The filter engages when that distance falls below 50 m and releases when it exceeds 80 m. While engaged, the projection searches only the 30 segments either side of the filter’s current segment, so a route that passes the same point twice (terminal loops, figure-of-eight ends) resolves to the branch the filter expects rather than the nearest one; a full search is repeated every 3 s as a safety net. <a href="#fig-snap" class="quarto-xref">Figure&nbsp;11</a> shows the distance and the snap state for one vehicle over a day.</p>
+<div id="fig-snap" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-snap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-6-1-snap-hysteresis.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-snap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11: Route 11, vehicle LTZ1502, 2026-09-25: distance from each raw fix to the learned inbound path, and the periods the filter was engaged. Breaks in the line are trips labelled outbound, which snap to the other path.
+</figcaption>
+</figure>
+</div>
+<p>The vehicle in <a href="#fig-snap" class="quarto-xref">Figure&nbsp;11</a> was snapped for 96.4% of its 700 inbound-labelled fixes. The unsnapped remainder are fixes at the far terminus that still carry the inbound label, and the single 6 km outlier at the start of the day.</p>
+</section>
+<section id="the-filter" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="the-filter"><span class="header-section-number">6.3</span> The filter</h2>
+<p>The state is arc length <span class="math inline">\(s\)</span> along the path (m), signed speed <span class="math inline">\(v\)</span> along it (m/s), and their <span class="math inline">\(2\times2\)</span> covariance <span class="math inline">\(P\)</span>. State time is the fix time. A hat marks an estimate, and a superscript minus marks the <em>predicted</em> estimate, before the next fix is folded in: <span class="math inline">\(\hat s^-\)</span> is where the model expects the bus to be, <span class="math inline">\(\hat s\)</span> is the estimate after the fix has been used. Between fixes the state is predicted with constant velocity and a continuous white-noise acceleration model of spectral density <span class="math inline">\(q\)</span>:</p>
+<p><span id="eq-predict"><span class="math display">\[ \hat s^- = s + v\,\Delta t, \qquad P^- = F P F^\top + Q(\Delta t), \quad F = \begin{pmatrix}1 &amp; \Delta t\\ 0 &amp; 1\end{pmatrix}, \quad Q = q\begin{pmatrix}\Delta t^3/3 &amp; \Delta t^2/2\\ \Delta t^2/2 &amp; \Delta t\end{pmatrix}  \tag{2}\]</span></span></p>
+<p>A new fix is projected onto the path to give the measurement <span class="math inline">\(z\)</span> (its arc length). The innovation <span class="math inline">\(y = z - \hat s^-\)</span> is gated at three standard deviations of the innovation variance <span class="math inline">\(S = P^-_{ss} + R\)</span>; a fix beyond the gate is rejected and the state is left as predicted. Three consecutive rejections re-seed the filter at the latest fix, on the grounds that the bus really is elsewhere. An accepted fix updates the state with the usual gain:</p>
+<p><span id="eq-update"><span class="math display">\[ K = P^- H^\top S^{-1},\quad H = (1\ \ 0), \qquad \hat s = \hat s^- + K y, \qquad P = (I - K H) P^-  \tag{3}\]</span></span></p>
+<p>The measurement variance <span class="math inline">\(R\)</span> is per route. The learner’s <code>meanResidualM</code> is a mean absolute deviation, so it is converted to a standard deviation with the Gaussian factor <span class="math inline">\(\sqrt{\pi/2}\approx1.25\)</span>, floored at 8 m because consumer GPS under open sky rarely does better regardless of how clean the residuals look; a route with no quality field is given 44 m, the equivalent of the worst residual the gate lets through. For the route in <a href="#fig-track" class="quarto-xref">Figure&nbsp;12</a> that gives <span class="math inline">\(\sigma_R = 10.3\)</span> m. The initial standard deviations are 30 m in position (the learner’s corridor start) and 3 m/s in speed (the raw model’s two-fix estimate deserves doubt). Speed is clamped to <span class="math inline">\(\pm20\)</span> m/s and is signed, because a learned path oriented against travel must track as negative speed rather than freeze <span class="citation" data-cites="barshalom2001 cathey2003">(<a href="#ref-barshalom2001" role="doc-biblioref">Bar-Shalom et al., 2001</a>; <a href="#ref-cathey2003" role="doc-biblioref">Cathey and Dailey, 2003</a>)</span>.</p>
+<div id="fig-track" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-track-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-6-2-kalman-track.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-track-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: A 40-minute stretch of the same vehicle: raw projections, the filtered arc length with its two-sigma band, and the displayed position between fixes.
+</figcaption>
+</figure>
+</div>
+<p>The process noise is <span class="math inline">\(q = 2\ \text{m}^2/\text{s}^3\)</span>, and its value is the one field revision worth recording. It was first set to 0.2 from the average fix cadence, which models smooth cruising. London buses stop every 300 to 400 m, so between two fixes 20 to 30 s apart the speed regularly swings the full 0 to 13 m/s. At <span class="math inline">\(q=0.2\)</span> that swing was a three-sigma event and the gate rejected 20 to 36% of honest braking and departure fixes in simulation; in production every bus stop produced a reject-then-reset cycle that displayed as a fleet-wide surge and stall. At <span class="math inline">\(q=2\)</span>, <span class="math inline">\(\sigma_v(25\,\text{s}) = \sqrt{25 q} \approx 7\)</span> m/s, and the same simulations gate no honest fixes. The smoothing given up is not missed: the filter’s real jobs are the along-path motion, the tangent heading and the teleport gate, none of which depend on it. On the day in <a href="#fig-snap" class="quarto-xref">Figure&nbsp;11</a> the filter accepted 675 of 700 fixes, gated 0 and reset 0 times; the median position standard deviation after update was 10.2 m.</p>
+</section>
+<section id="what-the-map-shows-between-fixes" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="what-the-map-shows-between-fixes"><span class="header-section-number">6.4</span> What the map shows between fixes</h2>
+<p>The filter’s covariance is updated only when a fix arrives, about 110 times per second across the fleet. The per-frame work, at up to 15 Hz, is one extrapolation, one eased scalar and an amortised constant-time walk along the polyline. The extrapolation is not constant velocity. The display objective is asymmetric: a bus drawn behind its true position catches up with a forward glide that reads as driving, while a bus drawn ahead of it has to be pulled back, which reads as reversing and is the single most jarring artefact the map can show. Three rules follow.</p>
+<ol type="1">
+<li><strong>Decaying coast.</strong> Between fixes the displayed arc length advances by <span class="math inline">\(v\,\tau\,(1 - e^{-\Delta t/\tau})\)</span> with <span class="math inline">\(\tau = 12\)</span> s (<a href="#fig-coast" class="quarto-xref">Figure&nbsp;13</a>). A silent bus decelerates smoothly and stops within <span class="math inline">\(v\tau\)</span>, about 96 m at 8 m/s, less than one stop spacing. The longer the silence, the less credible “still cruising” is, and the budget spends itself accordingly. The raw model coasts with the same decay so that the two models stay co-located during silence; otherwise a release of the snap would yank a halted bus onto a runaway linear extrapolation.</li>
+<li><strong>Forward only.</strong> A correction that lands behind the displayed position holds the icon still until the state catches up; it never backs up. The lock direction follows the established travel direction (a <span class="math inline">\(\pm1\)</span> m/s threshold), not the instantaneous sign of <span class="math inline">\(v\)</span>, so speed jitter at a stand cannot ratchet the display backwards. Genuine relocations remain representable: a re-seed places the icon directly, and any correction beyond 1.2 km, more than any honest coast backlog, jumps.</li>
+<li><strong>Plausible catch-up.</strong> Forward glides are capped at 25 m/s, about three times cruise, so a banked backlog reads as a fast bus rather than a teleport. At the sparser cadences in <a href="#fig-interval" class="quarto-xref">Figure&nbsp;3</a> the resulting rhythm is drive, slow, halt, glide forward; that is the chosen loss ordering (never ahead, then low latency, then smoothness), not a defect.</li>
+</ol>
+<div id="fig-coast" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-coast-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-6-3-coast-policy.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coast-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13: Displayed advance while no fix arrives: linear extrapolation at the last speed against the decaying coast used by the map.
+</figcaption>
+</figure>
+</div>
+<p>A vehicle that has moved less than 60 m in 20 minutes is drawn as parked, in a different colour, and neither model runs for it.</p>
+</section>
+</section>
+<section id="sec-diversions" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Diversion detection</h1>
+<section id="definitions" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="definitions"><span class="header-section-number">7.1</span> Definitions</h2>
+<p>The detector rides the same poll as the trace writer and, for every fix of every vehicle whose key has a learned path, computes the projection <span class="math inline">\((s, d)\)</span>: arc length along the path and unsigned distance from it. A vehicle’s fixes are cut into journeys at 600 s gaps exactly as in <a href="#sec-journeys" class="quarto-xref">Section&nbsp;4</a>, and the first 500 m of ground track of each journey is excluded from evidence because it is where garage pull-outs live. A fix is <em>off-path</em> when</p>
+<p><span id="eq-threshold"><span class="math display">\[ d &gt; \max(50\ \text{m},\ 5\times\texttt{meanResidualM})  \tag{4}\]</span></span></p>
+<p>with 15 m assumed for a path without a quality field. The threshold scales with the path’s own noise so that a route learned through a canyon does not fire on its everyday drift. <a href="#fig-h32" class="quarto-xref">Figure&nbsp;16</a> (right) shows the two series for one vehicle through a real diversion.</p>
+</section>
+<section id="what-counts-as-an-excursion" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="what-counts-as-an-excursion"><span class="header-section-number">7.2</span> What counts as an excursion</h2>
+<p>A run of off-path fixes becomes an <em>excursion</em> only when every condition in <a href="#tbl-excursion" class="quarto-xref">Table&nbsp;4</a> holds. The rejoin requirement is what makes the detector conservative: a vehicle that leaves the path and never comes back (wrong route, garage run, terminus overrun) never produces an excursion, however far it goes.</p>
+<div id="tbl-excursion" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-excursion-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: Conditions for a run of off-path fixes to become an excursion.
+</figcaption>
+<div aria-describedby="tbl-excursion-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Condition</th>
+<th>Threshold</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Off-path fixes in the run</td>
+<td>at least 5</td>
+<td>one or two drifted fixes are noise</td>
+</tr>
+<tr class="even">
+<td>Duration of the run</td>
+<td>at least 60 s</td>
+<td>shorter than any real detour</td>
+</tr>
+<tr class="odd">
+<td>Real ground movement in the run</td>
+<td>at least 300 m</td>
+<td>distance summed only over consecutive fixes at most 60 s apart, so a gap does not count as movement</td>
+</tr>
+<tr class="even">
+<td>On-path fixes before and after</td>
+<td>at least 2 each side</td>
+<td>the vehicle demonstrably left the path and rejoined it</td>
+</tr>
+<tr class="odd">
+<td>Forward progression</td>
+<td>median <span class="math inline">\(s\)</span> of the 32 fixes before the exit is less than that after the rejoin</td>
+<td>the vehicle continued along its route rather than turning back</td>
+</tr>
+<tr class="even">
+<td>Ground versus skipped stretch</td>
+<td>ground <span class="math inline">\(\le \max(2500\ \text{m},\ 4 \times (s_\text{rejoin} - s_\text{exit}))\)</span> and skipped stretch <span class="math inline">\(\ge 500\)</span> m</td>
+<td>a detour’s length is commensurate with what it bypasses; a wanderer travels far and skips little</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>No smoothing is applied to positions anywhere in the detector: each fix is projected as reported and judged on its own <span class="math inline">\(d\)</span>. Robustness comes from counts and durations (<a href="#tbl-excursion" class="quarto-xref">Table&nbsp;4</a>) and from three medians used as decisions rather than as filtered positions: the before-and-after medians of <span class="math inline">\(s\)</span> that establish forward progression, the median <span class="math inline">\(d\)</span> on the opposite direction’s path that catches a wrong direction label, and the per-route rolling median that suspends a route whose learned path is wrong (<a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a>).</p>
+<p>An excursion records the exit and rejoin arc lengths <span class="math inline">\(s_\text{exit}\)</span>, <span class="math inline">\(s_\text{rejoin}\)</span>, the maximum <span class="math inline">\(d\)</span>, the ground distance, the midpoint of the off-path track and a confidence level.</p>
+</section>
+<section id="guards-each-with-the-false-positive-that-motivated-it" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="guards-each-with-the-false-positive-that-motivated-it"><span class="header-section-number">7.3</span> Guards, each with the false positive that motivated it</h2>
+<p>The prototype was audited by hand before it went live, and the production version carries the guards that audit demanded. <a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a> lists them with the case each one answers. Two are hard caps on credibility: a <span class="math inline">\(d\)</span> beyond 1,500 m, or a skipped stretch beyond 4,000 m, is not a diversion whatever the fix pattern says. The second cap came from coaches and mis-shaped vehicles that left a route near its start and rejoined near its end, which the bracket logic in the next section then painted as an 11 to 15 km wash across half of north-west London.</p>
+<div id="tbl-guards" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-guards-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: Production guards on excursion detection.
+</figcaption>
+<div aria-describedby="tbl-guards-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Guard</th>
+<th>Rule</th>
+<th>The case behind it</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Gap reset</td>
+<td>a gap of 180 s or more inside a run restarts the count</td>
+<td>a vehicle that went silent mid-street was being credited with movement it never reported</td>
+</tr>
+<tr class="even">
+<td>Endpoint clamp</td>
+<td>if more than 20% of the run’s projections sit within 1 m of <span class="math inline">\(s=0\)</span> or <span class="math inline">\(s=s_\text{max}\)</span>, or the run stays within 200 m of a path end, discard</td>
+<td>terminus overruns and stand movements projected onto the path’s last vertex</td>
+</tr>
+<tr class="odd">
+<td>Dwell</td>
+<td>if fewer than 30% of the run’s fixes are moving (above 2 m/s), confidence LOW</td>
+<td>a bus held at a stand off-path is not diverting</td>
+</tr>
+<tr class="even">
+<td>Mislabel</td>
+<td>15 fixes are reprojected onto the opposite direction’s path; if they fit better, discard</td>
+<td>a wrong <code>DirectionRef</code> makes a normal trip look 30 m off for its whole length</td>
+</tr>
+<tr class="odd">
+<td>Credible distance</td>
+<td><span class="math inline">\(d &gt; 1500\)</span> m discards the run</td>
+<td>nothing that far away is a detour around a closure</td>
+</tr>
+<tr class="even">
+<td>Credible bracket</td>
+<td><span class="math inline">\(s_\text{rejoin} - s_\text{exit} &gt; 4000\)</span> m discards the run</td>
+<td>the north-west London wash</td>
+</tr>
+<tr class="odd">
+<td>Shape gate</td>
+<td>per route, the rolling median of <span class="math inline">\(d\)</span> over the last 256 fixes is re-evaluated every 64 fixes; while it exceeds the off-path threshold, detection on that route is suspended</td>
+<td>routes whose learned path does not follow the traffic (coach services with branching variants, a few quiet routes: median <span class="math inline">\(d\)</span> of 112 to 814 m against 3 to 14 m on healthy routes) produced the worst false events in replay; when the median fix reads as diverted, the shape is wrong, not the traffic. Projection continues, so the gate reopens once the nightly refit repairs the path</td>
+</tr>
+<tr class="even">
+<td>Memory bounds</td>
+<td>at most 4 pending runs and 2,000 fixes per vehicle; vehicle state dropped after 30 min unseen</td>
+<td>a bounded process is a prerequisite for running for weeks</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="from-excursions-to-events" class="level2" data-number="7.4">
+<h2 data-number="7.4" class="anchored" data-anchor-id="from-excursions-to-events"><span class="header-section-number">7.4</span> From excursions to events</h2>
+<p>Excursions are clustered by <em>site</em>: a new excursion joins the event whose members’ midpoints are within 500 m of its own, if that event has had evidence within the last 45 min; otherwise it starts a new one. Within an event, each route-direction key keeps one <em>bracket</em> <span class="math inline">\([s_A, s_B]\)</span> over the path, and every new excursion on that key only widens it: <span class="math inline">\(s_A = \min(s_A, s_\text{exit})\)</span>, <span class="math inline">\(s_B = \max(s_B, s_\text{rejoin})\)</span>. The band drawn on the map is the learned path sliced from <span class="math inline">\(s_A\)</span> to <span class="math inline">\(s_B\)</span>, for every key in the event, at most 12 segments per event.</p>
+<p>This is the property most often misread on the map, so it is worth stating plainly: <strong>the red band is the stretch of the original route that buses are skipping, not the detour they take.</strong> Because the bracket is a union over vehicles, it is at least as long as any single vehicle’s skipped stretch, and typically longer than most. Buses are legitimately seen on a red band at both ends, where each vehicle leaves and rejoins at its own point, and on the opposite carriageway when only one direction is affected. The union rule was chosen for the same reason as the learner’s quality gate: a band that under-reports a closure is worse than one that over-reports its ends by a few hundred metres.</p>
+<p>An event is <em>displayed</em> once it has two member vehicles. Its <em>severity</em> is <code>road</code> when at least two route-directions divert at the site (the road itself is the problem) and <code>partial</code> when only one does; the map draws them red and amber. Attribution of routes to an event uses only HIGH-confidence members, so a single LOW-confidence dwelling vehicle cannot add its route to the popup.</p>
+</section>
+<section id="lifecycle" class="level2" data-number="7.5">
+<h2 data-number="7.5" class="anchored" data-anchor-id="lifecycle"><span class="header-section-number">7.5</span> Lifecycle</h2>
+<div id="fig-lifecycle" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-lifecycle-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-7-2-lifecycle.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-lifecycle-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;14: Event states. Bands never shrink; a new excursion during recovery reactivates the event and restarts the quiet timer.
+</figcaption>
+</figure>
+</div>
+<p><a href="#fig-lifecycle" class="quarto-xref">Figure&nbsp;14</a> shows the states. An active event becomes <em>recovering</em> when two conditions hold at once: no new excursion for 20 min, and at least two vehicles have each driven at least 90% of every drawn bracket end to end (with a 50 m margin) since the last excursion. The second condition is the reason the green colour can be trusted: it is not the absence of evidence, it is positive evidence that the road is passable. A recovering event is dropped 10 min later. If instead an active event receives no evidence of any kind for 90 min it becomes <em>stale</em>, drawn grey, and is dropped after 6 h; this is the normal end of an event at night, when there are no buses to prove anything either way. An event older than 24 h is flagged long-running. Every transition is appended to a daily log, and the detector starts empty on boot: events rebuild from live traffic within minutes, so no active-state file needs to survive a restart.</p>
+</section>
+<section id="matching-to-tfl-road-disruptions" class="level2" data-number="7.6">
+<h2 data-number="7.6" class="anchored" data-anchor-id="matching-to-tfl-road-disruptions"><span class="header-section-number">7.6</span> Matching to TfL road disruptions</h2>
+<p>Every 10 min the backend refreshes TfL’s road disruption list <span class="citation" data-cites="tflroad">(<a href="#ref-tflroad" role="doc-biblioref">Transport for London, 2026</a>)</span>, which gives each incident a category (works, collision, hazard, planned event), a severity and a point. For each displayed event, the midpoint of each drawn band segment is compared with every active disruption, and the nearest within 250 m is attached and shown in the popup with its distance. The match never changes the event’s state; it is context, not evidence.</p>
+</section>
+<section id="case-studies" class="level2" data-number="7.7">
+<h2 data-number="7.7" class="anchored" data-anchor-id="case-studies"><span class="header-section-number">7.7</span> Case studies</h2>
+<p>Three events from 22 September 2026 show the detector at its best, at its most independent, and at its most easily misread.</p>
+<p><strong>Camberwell New Road, collision at 13:53 BST.</strong> TfL’s record says the road was blocked in both directions at the junction of Wyndham Road. <a href="#fig-camberwell" class="quarto-xref">Figure&nbsp;15</a> shows the fixes of routes 36 and 185 around the site: 1,644 off-path fixes against 1,722 on-path fixes in two hours, and the vehicle TFLO:LG73FRP leaving its path twice, once each way, with <span class="math inline">\(d\)</span> peaking above 1.4 km. The event was displayed at 14:21 UTC, matched to the collision record 3 m from the band, turned green at 20:42 UTC once two vehicles had driven the stretch again, and was dropped at 20:52. A TfL traffic camera on the corner, viewable from the map, showed free-flowing traffic at that point.</p>
+<div id="fig-camberwell" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-camberwell-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-7-4-camberwell.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-camberwell-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;15: Camberwell New Road. Left: two hours of fixes on the routes through the site. Right: one vehicle’s <span class="math inline">\((s, d)\)</span> series.
+</figcaption>
+</figure>
+</div>
+<p><strong>H32 near North Hyde, no notice.</strong> <a href="#fig-h32" class="quarto-xref">Figure&nbsp;16</a> shows a diversion with no TfL road record within 250 m of the band at the time (the nearest record was works over 100 m away on a different alignment). Every affected vehicle followed the same loop east of the path. The vehicle TFLO:LTZ1657 turned off at the band’s start at 20:33 UTC and was 575 m from the path three minutes later. The event cycled between active and recovering four times during the afternoon and evening as traffic thinned, which is the lifecycle working as designed: each new excursion restarted the quiet timer.</p>
+<div id="fig-h32" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-h32-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-7-5-h32.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-h32-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;16: H32. Left: the loop every diverting vehicle took. Right: the vehicle that turned off at the band’s start while the popup still read “last diverting bus 15 min ago”, because an excursion is only recorded once the vehicle rejoins.
+</figcaption>
+</figure>
+</div>
+<p><strong>Victoria Street, one band for four routes.</strong> Routes 11, 24, 26 and 148 share the closed stretch, and the event carried all four (<a href="#fig-victoria" class="quarto-xref">Figure&nbsp;17</a>). This is the case where the map answers the passenger’s third question directly: switching from the 11 to the 24 changes nothing, because both bands are the same band. It is also where the union rule shows: the drawn band is longer than any one vehicle’s skipped stretch, and buses were visible on its ends all day.</p>
+<div id="fig-victoria" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-victoria-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-7-6-victoria.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-victoria-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;17: Victoria Street. Left: fixes of routes 11, 24 and 148 through the closure. Right: a route 24 vehicle leaving the path twice inside two hours.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="what-the-detector-produced" class="level2" data-number="7.8">
+<h2 data-number="7.8" class="anchored" data-anchor-id="what-the-detector-produced"><span class="header-section-number">7.8</span> What the detector produced</h2>
+<p>The transition log covers 31 days and 35,542 event identifiers, of which 6,983 reached the display threshold of two vehicles: a median of 224 displayed events per day (<a href="#fig-events" class="quarto-xref">Figure&nbsp;18</a>). Of the displayed events, 4,743 ended in recovery, 2,107 went stale and were dropped, and 133 were still open at the end of the log. The median displayed event lasted 73 min from first to last evidence (90th percentile 1,030 min), involved 3 vehicles (90th percentile 12) and 2 routes; 43.2% involved a single route. The weekday peak of new events is at 5:00 UTC, in the morning ramp-up.</p>
+<div id="fig-events" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-events-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-7-7-events-per-day.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-events-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;18: Displayed events by day and by hour of day.
+</figcaption>
+</figure>
+</div>
+<p>The live matcher’s results are not in the log, so <a href="#fig-match" class="quarto-xref">Figure&nbsp;19</a> re-derives the TfL match offline: for each displayed event the learned paths of its routes within 1.5 km of the centroid stand in for the band, and the nearest active TfL disruption in the archived snapshot closest in time (median gap 5,124 s) is measured against them. 1,749 of 6,983 displayed events (25%) have a record within 250 m. The rate rises with size: 33.8% for events with five or more vehicles, 28% with two or more routes, 43.3% with ten or more vehicles on two or more routes. Of the matched records, 1,528 are works and 75 collisions.</p>
+<div id="fig-match" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-match-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-7-3-tfl-match.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-match-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;19: Distance from each displayed event’s route paths to the nearest active TfL road disruption record.
+</figcaption>
+</figure>
+</div>
+<p>Two readings of the unmatched three quarters are both partly true and cannot be separated with the data available. Many small events are diversions TfL’s road list does not carry, because that list is dominated by works on the strategic road network and borough-road closures often never appear in it. Some are false positives that the guards did not catch. The H32 case is an example of the first kind; a two-vehicle event on a single route at a garage could be the second. The detector was audited by hand on the prototype (8 of 10 sampled events confirmed, no garage artefacts), and the guards in <a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a> each removed a class of error, but there is no ground truth against which to state a recall or a precision. <a href="#sec-limits" class="quarto-xref">Section&nbsp;10</a> says what would provide one.</p>
+</section>
+</section>
+<section id="sec-flow" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Bus Flow: corridor journey density</h1>
+<p>The Bus Flow layer is derived entirely from artefacts already on disk: the learned paths and the daily rollups. A rollup is written once an hour for every completed UTC day, per key: fixes, vehicles, journeys, a speed histogram in 0.5 m/s bins and the mean residual to the learned path. Rollups are about 250 KB per day and are never deleted, so they are the longitudinal record that outlives the seven-day trace window.</p>
+<p>Corridor weights are a rolling mean of journeys per day over the seven most recent completed days, with absent days counted as zero so that weekday and weekend swings are smoothed rather than hidden. Assembly is a corridor merge: routes are walked busiest first, each path resampled to 25 m pieces; a piece landing within 18 m of an already-emitted piece with a compatible bearing (same road, either direction) adds its route’s journeys to that piece instead of drawing a second line. Consecutive same-owner pieces merge into runs, split where the summed total crosses a bucket edge. The buckets are absolute lower bounds in journeys per day (0, 10, 30, 75, 150, 300), so a colour means the same service level on every rebuild; quantile edges would recolour untouched corridors whenever unrelated routes changed. The artefact is rebuilt once a day. <a href="#tbl-flow" class="quarto-xref">Table&nbsp;6</a> gives the result for the current artefact.</p>
+<div id="tbl-flow" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-flow-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: The Bus Flow artefact for the seven days ending 2026-09-26: 48,743 runs, 10,975 km of corridor.
+</figcaption>
+<div aria-describedby="tbl-flow-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 26%">
+<col style="width: 26%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Bucket (journeys/day)</th>
+<th style="text-align: right;">Runs</th>
+<th style="text-align: right;">Corridor length (km)</th>
+<th style="text-align: right;">Share of length</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0 to 9</td>
+<td style="text-align: right;">8,977</td>
+<td style="text-align: right;">2,518</td>
+<td style="text-align: right;">22.9%</td>
+</tr>
+<tr class="even">
+<td>10 to 29</td>
+<td style="text-align: right;">9,038</td>
+<td style="text-align: right;">2,097</td>
+<td style="text-align: right;">19.1%</td>
+</tr>
+<tr class="odd">
+<td>30 to 74</td>
+<td style="text-align: right;">7,606</td>
+<td style="text-align: right;">1,677</td>
+<td style="text-align: right;">15.3%</td>
+</tr>
+<tr class="even">
+<td>75 to 149</td>
+<td style="text-align: right;">9,515</td>
+<td style="text-align: right;">1,572</td>
+<td style="text-align: right;">14.3%</td>
+</tr>
+<tr class="odd">
+<td>150 to 299</td>
+<td style="text-align: right;">8,410</td>
+<td style="text-align: right;">1,335</td>
+<td style="text-align: right;">12.2%</td>
+</tr>
+<tr class="even">
+<td>300 and over</td>
+<td style="text-align: right;">5,197</td>
+<td style="text-align: right;">1,775</td>
+<td style="text-align: right;">16.2%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<div id="fig-flow" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-flow-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-8-1-bus-flow.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-flow-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;20: The Bus Flow layer with the diversion bands over it, central and south London.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="sec-ops" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Operational footprint</h1>
+<p>Everything in this document runs in one Node.js process on one small cloud instance, alongside the rail and other feeds. The backend document gives the architecture and the bill; three numbers belong here. Ingress is 7.5 MB every 15 s, about 43 GB per day, all of it the SIRI document. The in-memory tables are bounded by construction: the detector holds a median of 7,278 vehicle states, dropping any vehicle unseen for 30 min, and the event store is capped at 500 members per event. <a href="#fig-health" class="quarto-xref">Figure&nbsp;21</a> shows the process over 4,999 samples between 2026-09-04 and 2026-09-28: median resident memory 647 MB (maximum 1,559 MB), median heap 238 MB. The daily sawtooth in vehicle states is the fleet’s day; the restarts on 09-04 and 09-11 are the two incidents described in the backend document.</p>
+<div id="fig-health" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-health-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-9-1-health.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-health-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;21: Process memory and table sizes from the /health endpoint, sampled every five minutes. Gaps are sampler outages, not server ones.
+</figcaption>
+</figure>
+</div>
+<p>The nightly learner is the one heavy job: it streams three days of traces, about 29 min of wall-clock time for the run in <a href="#tbl-learner" class="quarto-xref">Table&nbsp;3</a>, in a separate process so that its memory peak is released afterwards.</p>
+</section>
+<section id="sec-limits" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Limitations and what data would help</h1>
+<p>Each limitation below is paired with the data that would remove it. None of the data would need new collection; all of it exists inside TfL.</p>
+<p><strong>Routes with little service have no path.</strong> A key needs five complete journeys in three days. Night routes on quiet nights, school services and short workings fall below it and are drawn from raw GPS. <em>Timetable shapes for TfL routes</em> would give every key a prior and let the learner start from the right shape on day one.</p>
+<p><strong>The direction label is the largest noise source.</strong> Three guards exist for it and it still leaks: the 12 far-from-path fixes on <a href="#fig-journeys" class="quarto-xref">Figure&nbsp;6</a> are one vehicle on one day. <em>The operator’s trip identifier per fix</em> (the SIRI <code>DatedVehicleJourneyRef</code>, which some operators populate and TfL’s do not) would replace direction inference with a lookup.</p>
+<p><strong>Bands only grow.</strong> The union bracket over-reports the ends of a closure. A 10th-to-90th percentile bracket would be tighter but would need more vehicles before it stabilised; the trade was made in favour of showing something early. <em>TfL’s own diversion and closure records</em>, with start and end stops, would both calibrate the bracket rule and provide the ground truth the next point needs.</p>
+<p><strong>Detection has no recall figure.</strong> The audit confirmed precision on a sample; nothing measures what was missed. <em>A month of TfL’s diversion log</em> aligned with a month of traces would give recall, precision and the false-positive classes directly, and would let every threshold in <strong>?@sec-params</strong> be set by optimisation rather than by case.</p>
+<p><strong>The map sees slow, not late.</strong> Speeds and gaps are visible; delay in minutes is not, because the feed carries no stop arrivals and the learner does not know the timetable. <em>Stop arrival times</em>, or the iBus arrival predictions TfL already publishes for passengers, joined to the learned paths, would turn “buses are crawling here” into “buses are 11 minutes down here”.</p>
+<p><strong>Three days is a design choice.</strong> A diversion that lasts longer than the trace window is learned as the new route, and the detector then sees the original alignment as the diversion until traffic returns. This is intended: the map should show where buses go, and a month-long closure is the route for that month. It does mean that long closures need the notice data, not the detector.</p>
+<p><strong>The archive is the author’s.</strong> 38 days of feed have been kept locally by pulling each completed day from the server. <em>A longer historical extract of the SIRI-VM feed for London</em> would allow the seasonal and week-to-week analyses this document cannot yet support.</p>
+</section>
+<section id="sec-repro" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> Reproducibility</h1>
+<p>The source is public <span class="citation" data-cites="londonlive">(<a href="#ref-londonlive" role="doc-biblioref">Peng, 2026</a>)</span>. The backend components named in this document are <code>backend/src/bods-client.ts</code> (poll and parse), <code>trace-writer.ts</code>, <code>rollup-writer.ts</code>, <code>coverage-writer.ts</code>, <code>diversion-detector.ts</code>, <code>diversion-events.ts</code> and <code>learner-scheduler.ts</code>; the learner is <code>scripts/learn-bus-routes.mjs</code> and the prior fetch <code>scripts/fetch-bus-prior.mjs</code>; the display model is <code>frontend/src/realtime/bus-kalman.ts</code> and <code>frontend/src/layers/buses.ts</code>. The learner runs standalone with <code>BUS_DATA_DIR</code> pointing at a directory that contains <code>bus-traces/YYYY-MM-DD.jsonl</code>; a BODS API key, free to register, is needed to poll the feed.</p>
+<p>Every figure and every number in this document is produced by a script in the accompanying <code>scripts/</code> directory from the archived daily files, and the text is filled from a single <code>numbers.json</code> so that prose and data cannot disagree. <a href="#tbl-scripts" class="quarto-xref">Table&nbsp;7</a> lists them. The Kalman replay imports the production filter module unchanged.</p>
+<div id="tbl-scripts" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-scripts-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Scripts behind the figures.
+</figcaption>
+<div aria-describedby="tbl-scripts-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Script</th>
+<th>Produces</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>scan-traces.py</code></td>
+<td>one JSON of histograms per day of traces; <a href="#fig-fleet" class="quarto-xref">Figure&nbsp;1</a> to <a href="#fig-speed" class="quarto-xref">Figure&nbsp;4</a>, <a href="#tbl-journeys" class="quarto-xref">Table&nbsp;2</a></td>
+</tr>
+<tr class="even">
+<td><code>fig-5-learning.py</code></td>
+<td><a href="#fig-cloud" class="quarto-xref">Figure&nbsp;7</a>, <a href="#fig-vertex" class="quarto-xref">Figure&nbsp;8</a>, <a href="#fig-lowcov" class="quarto-xref">Figure&nbsp;10</a></td>
+</tr>
+<tr class="odd">
+<td><code>fig-5-3-learned-quality.py</code></td>
+<td><a href="#fig-quality" class="quarto-xref">Figure&nbsp;9</a></td>
+</tr>
+<tr class="even">
+<td><code>replay-kalman.ts</code>, <code>fig-6-kalman.py</code></td>
+<td><a href="#fig-snap" class="quarto-xref">Figure&nbsp;11</a>, <a href="#fig-track" class="quarto-xref">Figure&nbsp;12</a>, <a href="#fig-coast" class="quarto-xref">Figure&nbsp;13</a></td>
+</tr>
+<tr class="odd">
+<td><code>diversion-stats.py</code>, <code>tfl-match.py</code>, <code>fig-7-8-events.py</code></td>
+<td><a href="#fig-events" class="quarto-xref">Figure&nbsp;18</a>, <a href="#fig-match" class="quarto-xref">Figure&nbsp;19</a>, section 7 statistics</td>
+</tr>
+<tr class="even">
+<td><code>fig-7-cases.py</code></td>
+<td><a href="#fig-camberwell" class="quarto-xref">Figure&nbsp;15</a>, <a href="#fig-h32" class="quarto-xref">Figure&nbsp;16</a>, <a href="#fig-victoria" class="quarto-xref">Figure&nbsp;17</a></td>
+</tr>
+<tr class="odd">
+<td><code>fig-4-1-journeys.py</code></td>
+<td><a href="#fig-journeys" class="quarto-xref">Figure&nbsp;6</a></td>
+</tr>
+<tr class="even">
+<td><code>fig-9-1-health.py</code></td>
+<td><a href="#fig-health" class="quarto-xref">Figure&nbsp;21</a></td>
+</tr>
+<tr class="odd">
+<td><code>fig-diagrams.py</code></td>
+<td><a href="#fig-pipeline" class="quarto-xref">Figure&nbsp;5</a>, <a href="#fig-lifecycle" class="quarto-xref">Figure&nbsp;14</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="references" class="level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-barshalom2001" class="csl-entry" role="listitem">
+Bar-Shalom, Y., Li, X.R., Kirubarajan, T., 2001. Estimation with applications to tracking and navigation. Wiley.
+</div>
+<div id="ref-cathey2003" class="csl-entry" role="listitem">
+Cathey, F.W., Dailey, D.J., 2003. A prescription for transit arrival/departure prediction using automatic vehicle location data. Transportation Research Part C: Emerging Technologies 11, 241–264. <a href="https://doi.org/10.1016/S0968-090X(03)00023-8">https://doi.org/10.1016/S0968-090X(03)00023-8</a>
+</div>
+<div id="ref-siri" class="csl-entry" role="listitem">
+CEN, 2015. <span>CEN/TS 15531</span>: Service interface for real-time information (SIRI), part 5: Vehicle monitoring.
+</div>
+<div id="ref-bods" class="csl-entry" role="listitem">
+Department for Transport, 2026. Bus open data service: Developer documentation.
+</div>
+<div id="ref-newson2009" class="csl-entry" role="listitem">
+Newson, P., Krumm, J., 2009. Hidden <span>Markov</span> map matching through noise and sparseness, in: Proceedings of the 17th ACM SIGSPATIAL International Conference on Advances in Geographic Information Systems. pp. 336–343. <a href="https://doi.org/10.1145/1653771.1653818">https://doi.org/10.1145/1653771.1653818</a>
+</div>
+<div id="ref-londonlive" class="csl-entry" role="listitem">
+Peng, H., 2026. London live: Source code.
+</div>
+<div id="ref-quddus2007" class="csl-entry" role="listitem">
+Quddus, M.A., Ochieng, W.Y., Noland, R.B., 2007. Current map-matching algorithms for transport applications: State-of-the art and future research directions. Transportation Research Part C: Emerging Technologies 15, 312–328. <a href="https://doi.org/10.1016/j.trc.2007.05.002">https://doi.org/10.1016/j.trc.2007.05.002</a>
+</div>
+<div id="ref-tflroad" class="csl-entry" role="listitem">
+Transport for London, 2026. TfL unified API: Road disruptions.
+</div>
+</div>
+</section>
+<section id="sec-schemas" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix A. Data schemas</h1>
+<p><strong>Trace line</strong> (<code>bus-traces/YYYY-MM-DD.jsonl</code>): <code>{k, i, x, y, t}</code> as in <a href="#sec-data" class="quarto-xref">Section&nbsp;2</a>.</p>
+<p><strong>Learned path</strong> (<code>bus-routes/learned/&lt;key&gt;.json</code>, <code>:</code> replaced by <code>_</code> in the file name):</p>
+<pre><code>{"key": "TFLO:68:inbound",
+ "poly": [[lon, lat], ...],                      // 25 m spacing, oriented with travel
+ "quality": {"journeys": 202, "meanResidualM": 5.5, "coverage": 0.913}}</code></pre>
+<p><strong>Prior</strong> (<code>bus-routes/prior/&lt;key&gt;.json</code>): <code>{poly: [[lon, lat], ...], stops: [[lon, lat], ...]}</code>.</p>
+<p><strong>Rollup</strong> (<code>bus-rollups/YYYY-MM-DD.json</code>): <code>{day, generatedAt, totals: {fixes, vehicles, routes, journeys, malformedLines}, routes: {&lt;key&gt;: {fixes, vehicles, journeys, speedMs: {p25, p50, p75, samples}, meanResidualM}}}</code>.</p>
+<p><strong>Event transition</strong> (<code>diversions/YYYY-MM-DD.jsonl</code>): <code>{t, id, transition, event: {status, displayWorthy, startedAt, lastEvidenceAt, routes[], vehicles, members, centroid}}</code> with <code>transition</code> one of <code>created</code>, <code>displayed</code>, <code>recovering</code>, <code>reactivated</code>, <code>stale</code>, <code>dropped</code>.</p>
+<p><strong>Diversions API</strong> (<code>/api/diversions</code>): <code>{generatedAt, events: [{id, status, severity, startedAt, lastEvidenceAt, routes[], vehicles, longRunning, centroid, segments: [[[lon, lat], ...]], tfl: {loc, dist} | null}]}</code>.</p>
+<p><strong>Bus wire row</strong> (<code>/api/buses</code>): <code>{i, l, o, r, d, x, y, b, t}</code>, the fields of <a href="#tbl-fields" class="quarto-xref">Table&nbsp;1</a> with short keys because the array carries about 9,000 rows every 15 s.</p>
+</section>
+<section id="sec-params" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix B. Parameters</h1>
+<div id="tbl-params" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-params-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8: Every constant named in this document.
+</figcaption>
+<div aria-describedby="tbl-params-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Value</th>
+<th>Where</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Poll interval</td>
+<td>15 s</td>
+<td>bods-client</td>
+<td>feed update cadence</td>
+</tr>
+<tr class="even">
+<td>Fetch timeout</td>
+<td>30 s</td>
+<td>bods-client</td>
+<td>7.5 MB download</td>
+</tr>
+<tr class="odd">
+<td>Vehicle stale after</td>
+<td>5 min</td>
+<td>bods-client</td>
+<td>dropped from the table</td>
+</tr>
+<tr class="even">
+<td>Trace retention</td>
+<td>7 days, 2 GB</td>
+<td>trace-writer</td>
+<td>rolling window; rollups keep the history</td>
+</tr>
+<tr class="odd">
+<td>Trace flush interval</td>
+<td>5 s</td>
+<td>trace-writer</td>
+<td>poll loop never touches disk</td>
+</tr>
+<tr class="even">
+<td>Journey split gap</td>
+<td>600 s</td>
+<td>learner, rollups, detector</td>
+<td>see <a href="#fig-interval" class="quarto-xref">Figure&nbsp;3</a></td>
+</tr>
+<tr class="odd">
+<td>Complete journey</td>
+<td>15 fixes, 2,000 m, 480 s</td>
+<td>learner</td>
+<td>fragments are not learned from</td>
+</tr>
+<tr class="even">
+<td>Layover split</td>
+<td>300 s within 80 m</td>
+<td>learner (candidates)</td>
+<td>terminal stands glue trips</td>
+</tr>
+<tr class="odd">
+<td>Minimum journeys per key</td>
+<td>5</td>
+<td>learner</td>
+<td>fewer cannot outvote drift</td>
+</tr>
+<tr class="even">
+<td>Trace window</td>
+<td>3 days</td>
+<td>learner</td>
+<td>recency versus support</td>
+</tr>
+<tr class="odd">
+<td>Seed spacing</td>
+<td>25 m, max 2,500 vertices</td>
+<td>learner</td>
+<td>projection resolution</td>
+</tr>
+<tr class="even">
+<td>Corridor</td>
+<td>30 to 60 m, p90 of residuals</td>
+<td>learner</td>
+<td><a href="#eq-corridor" class="quarto-xref">Equation&nbsp;1</a></td>
+</tr>
+<tr class="odd">
+<td>Ignored residual</td>
+<td>over 100 m</td>
+<td>learner</td>
+<td>off-route noise</td>
+</tr>
+<tr class="even">
+<td>Trim fraction</td>
+<td>20%</td>
+<td>learner</td>
+<td>biased drift</td>
+</tr>
+<tr class="odd">
+<td>Vertex minimum support</td>
+<td>4 fixes</td>
+<td>learner</td>
+<td>else keep seed position</td>
+</tr>
+<tr class="even">
+<td>Stop anchor</td>
+<td>40 m radius, pull 0.5</td>
+<td>learner</td>
+<td>priors only</td>
+</tr>
+<tr class="odd">
+<td>Residual gate</td>
+<td>35 m</td>
+<td>learner</td>
+<td>no path beats a wrong one</td>
+</tr>
+<tr class="even">
+<td>Coverage threshold</td>
+<td>0.9 (London operators)</td>
+<td>learner</td>
+<td>triggers repair</td>
+</tr>
+<tr class="odd">
+<td>Repair scoring</td>
+<td>400 candidates, 15,000 sampled fixes, 60 m radius, support 3</td>
+<td>learner</td>
+<td>recall times precision</td>
+</tr>
+<tr class="even">
+<td>Self-overlap rejection</td>
+<td>30% of vertices within 30 m of a part over 20 segments earlier</td>
+<td>learner</td>
+<td>out-and-back seeds</td>
+</tr>
+<tr class="odd">
+<td>Chunk fix budget</td>
+<td>4,000,000</td>
+<td>learner</td>
+<td>about 100 MB per chunk</td>
+</tr>
+<tr class="even">
+<td>Learner schedule</td>
+<td>run if last run over 20 h old, then every 24 h; 60 s startup delay; 45 min timeout</td>
+<td>scheduler</td>
+<td>no cron</td>
+</tr>
+<tr class="odd">
+<td>Prior refresh</td>
+<td>7 days</td>
+<td>scheduler</td>
+<td>timetables change slowly</td>
+</tr>
+<tr class="even">
+<td>Snap on / off</td>
+<td>50 m / 80 m</td>
+<td>buses layer</td>
+<td>hysteresis on the raw model</td>
+</tr>
+<tr class="odd">
+<td>Snap local window</td>
+<td>30 segments; full search every 3 s</td>
+<td>buses layer</td>
+<td>overlapping route ends</td>
+</tr>
+<tr class="even">
+<td>Process noise <span class="math inline">\(q\)</span></td>
+<td>2 m²/s³</td>
+<td>bus-kalman</td>
+<td>stop-and-go within one fix gap</td>
+</tr>
+<tr class="odd">
+<td>Innovation gate</td>
+<td>3 σ</td>
+<td>bus-kalman</td>
+<td>99.7%</td>
+</tr>
+<tr class="even">
+<td>Rejects before re-seed</td>
+<td>3</td>
+<td>bus-kalman</td>
+<td>bus genuinely elsewhere</td>
+</tr>
+<tr class="odd">
+<td>Initial σ</td>
+<td>30 m, 3 m/s</td>
+<td>bus-kalman</td>
+<td>corridor start; two-fix speed</td>
+</tr>
+<tr class="even">
+<td>Measurement σ</td>
+<td>1.25 × residual, floor 8 m, default 44 m</td>
+<td>bus-kalman</td>
+<td>MAD to σ; GPS floor; worst gated route</td>
+</tr>
+<tr class="odd">
+<td>Speed clamp</td>
+<td>±20 m/s</td>
+<td>bus-kalman</td>
+<td>signed</td>
+</tr>
+<tr class="even">
+<td>Coast <span class="math inline">\(\tau\)</span></td>
+<td>12 s</td>
+<td>bus-kalman</td>
+<td>bound <span class="math inline">\(v\tau\)</span></td>
+</tr>
+<tr class="odd">
+<td>Catch-up cap</td>
+<td>25 m/s</td>
+<td>bus-kalman</td>
+<td>about three times cruise</td>
+</tr>
+<tr class="even">
+<td>Jump distance</td>
+<td>1,200 m</td>
+<td>bus-kalman</td>
+<td>beyond any honest backlog</td>
+</tr>
+<tr class="odd">
+<td>Display ease <span class="math inline">\(\tau\)</span></td>
+<td>2.5 s</td>
+<td>buses layer</td>
+<td>icon motion</td>
+</tr>
+<tr class="even">
+<td>Parked</td>
+<td>under 60 m in 20 min</td>
+<td>buses layer</td>
+<td>drawn differently</td>
+</tr>
+<tr class="odd">
+<td>Detector clip</td>
+<td>first 500 m of each journey</td>
+<td>detector</td>
+<td>garage pull-outs</td>
+</tr>
+<tr class="even">
+<td>Off-path threshold</td>
+<td>max(50 m, 5 × residual), default residual 15 m</td>
+<td>detector</td>
+<td><a href="#eq-threshold" class="quarto-xref">Equation&nbsp;4</a></td>
+</tr>
+<tr class="odd">
+<td>Excursion minimums</td>
+<td>5 fixes, 60 s, 300 m real movement (pairs at most 60 s apart)</td>
+<td>detector</td>
+<td><a href="#tbl-excursion" class="quarto-xref">Table&nbsp;4</a></td>
+</tr>
+<tr class="even">
+<td>Bracket fixes</td>
+<td>2 on-path each side; progression over 32-fix medians</td>
+<td>detector</td>
+<td>left and rejoined</td>
+</tr>
+<tr class="odd">
+<td>Wanderer</td>
+<td>ground over max(2,500 m, 4 × skipped) or skipped under 500 m</td>
+<td>detector</td>
+<td><a href="#tbl-excursion" class="quarto-xref">Table&nbsp;4</a></td>
+</tr>
+<tr class="even">
+<td>Gap reset</td>
+<td>180 s</td>
+<td>detector</td>
+<td><a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a></td>
+</tr>
+<tr class="odd">
+<td>Endpoint clamp</td>
+<td>20% of projections within 1 m of an end, or within 200 m of an end</td>
+<td>detector</td>
+<td><a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a></td>
+</tr>
+<tr class="even">
+<td>Dwell</td>
+<td>under 30% moving at over 2 m/s → LOW</td>
+<td>detector</td>
+<td><a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a></td>
+</tr>
+<tr class="odd">
+<td>Mislabel sample</td>
+<td>15 fixes</td>
+<td>detector</td>
+<td><a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a></td>
+</tr>
+<tr class="even">
+<td>Credible <span class="math inline">\(d\)</span> / bracket</td>
+<td>1,500 m / 4,000 m</td>
+<td>detector</td>
+<td><a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a></td>
+</tr>
+<tr class="odd">
+<td>Shape gate</td>
+<td>median of 256 fixes, re-evaluated every 64</td>
+<td>detector</td>
+<td><a href="#tbl-guards" class="quarto-xref">Table&nbsp;5</a></td>
+</tr>
+<tr class="even">
+<td>Per-vehicle bounds</td>
+<td>4 pending runs, 2,000 fixes, 30 min TTL</td>
+<td>detector</td>
+<td>memory</td>
+</tr>
+<tr class="odd">
+<td>Route index rebuild</td>
+<td>24 h</td>
+<td>detector</td>
+<td>learner cadence</td>
+</tr>
+<tr class="even">
+<td>TfL snapshot refresh</td>
+<td>10 min</td>
+<td>detector</td>
+<td>road disruption list</td>
+</tr>
+<tr class="odd">
+<td>Site merge distance</td>
+<td>500 m</td>
+<td>events</td>
+<td>same closure</td>
+</tr>
+<tr class="even">
+<td>Event window</td>
+<td>45 min</td>
+<td>events</td>
+<td>evidence recency</td>
+</tr>
+<tr class="odd">
+<td>Display minimum</td>
+<td>2 vehicles</td>
+<td>events</td>
+<td>one vehicle is an anecdote</td>
+</tr>
+<tr class="even">
+<td>Recovery</td>
+<td>2 vehicles, 90% of each bracket, 50 m margin, 20 min quiet</td>
+<td>events</td>
+<td>positive evidence</td>
+</tr>
+<tr class="odd">
+<td>Stale / drop</td>
+<td>90 min; drop after 6 h (stale) or 10 min (recovering)</td>
+<td>events</td>
+<td>lifecycle</td>
+</tr>
+<tr class="even">
+<td>Long-running flag</td>
+<td>24 h</td>
+<td>events</td>
+<td>popup note</td>
+</tr>
+<tr class="odd">
+<td>TfL match distance</td>
+<td>250 m</td>
+<td>events</td>
+<td>context only</td>
+</tr>
+<tr class="even">
+<td>Event caps</td>
+<td>500 members, 12 drawn segments</td>
+<td>events</td>
+<td>memory, payload</td>
+</tr>
+<tr class="odd">
+<td>Coverage window</td>
+<td>7 completed days</td>
+<td>coverage-writer</td>
+<td>rolling mean</td>
+</tr>
+<tr class="even">
+<td>Corridor merge</td>
+<td>25 m pieces, 18 m match, 5 m simplification</td>
+<td>coverage-writer</td>
+<td>prototype-validated</td>
+</tr>
+<tr class="odd">
+<td>Coverage buckets</td>
+<td>0, 10, 30, 75, 150, 300 journeys/day</td>
+<td>coverage-writer</td>
+<td>absolute, stable colours</td>
+</tr>
+<tr class="even">
+<td>Rollup speed histogram</td>
+<td>0.5 m/s bins to 40 m/s; pairs at least 5 s apart</td>
+<td>rollup-writer</td>
+<td>glitch cut-off</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="sec-glossary" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix C. Glossary</h1>
+<p><strong>Fix.</strong> One reported position of one vehicle at one <code>RecordedAtTime</code>.</p>
+<p><strong>Key.</strong> <code>OPERATOR:line:direction</code>, the route-direction; the unit of learning, rollups and detection.</p>
+<p><strong>Journey.</strong> A vehicle’s consecutive fixes on one key with no gap over 600 s. <em>Complete</em> when it meets the learner’s three thresholds.</p>
+<p><strong>Layover.</strong> 300 s or more within 80 m; used to cut candidate seed journeys.</p>
+<p><strong>Seed.</strong> The starting polyline for a key: its prior, or the median-length complete journey.</p>
+<p><strong>Corridor.</strong> The half-width around the seed inside which fixes are assigned to vertices: 30 to 60 m.</p>
+<p><strong>Residual.</strong> Distance from a fix to its projection on a path. <code>meanResidualM</code> is the mean over a sample of fixes against the learned path.</p>
+<p><strong>Coverage.</strong> Fraction of a key’s fixes inside the learned path’s corridor.</p>
+<p><strong><span class="math inline">\((s, d)\)</span>.</strong> Arc length along a path and distance from it, the projection of a fix.</p>
+<p><strong>Snap.</strong> The state in which a bus is drawn on its learned path and the filter runs; engaged under 50 m, released over 80 m.</p>
+<p><strong>Excursion.</strong> A run of off-path fixes that meets every condition in <a href="#tbl-excursion" class="quarto-xref">Table&nbsp;4</a>; the unit of diversion evidence.</p>
+<p><strong>Site.</strong> A cluster of excursions whose midpoints are within 500 m; one event.</p>
+<p><strong>Bracket / band.</strong> Per key within an event, <span class="math inline">\([s_A, s_B]\)</span>, the union of members’ skipped stretches; the band is the path sliced to it.</p>
+<p><strong>Recovering.</strong> The state entered after 20 quiet minutes and two vehicles driving each band end to end; drawn green.</p>
+<p><strong>Rollup.</strong> The per-day, per-key aggregate written once a day is complete.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,234 @@
+{
+ "case_camberwell_offroute_fixes": 1644,
+ "case_camberwell_onroute_fixes": 1722,
+ "case_camberwell_vehicle": "TFLO:LG73FRP",
+ "case_h32_offroute_fixes": 94,
+ "case_h32_onroute_fixes": 760,
+ "case_h32_vehicle": "TFLO:LTZ1657",
+ "case_victoria_offroute_fixes": 428,
+ "case_victoria_onroute_fixes": 2232,
+ "case_victoria_vehicle": "TFLO:LTZ1689",
+ "coverage_by_bucket": {
+  "0": {
+   "km": 2518,
+   "pct": 22.9,
+   "runs": 8977
+  },
+  "1": {
+   "km": 2097,
+   "pct": 19.1,
+   "runs": 9038
+  },
+  "2": {
+   "km": 1677,
+   "pct": 15.3,
+   "runs": 7606
+  },
+  "3": {
+   "km": 1572,
+   "pct": 14.3,
+   "runs": 9515
+  },
+  "4": {
+   "km": 1335,
+   "pct": 12.2,
+   "runs": 8410
+  },
+  "5": {
+   "km": 1775,
+   "pct": 16.2,
+   "runs": 5197
+  }
+ },
+ "coverage_day": "2026-09-26",
+ "coverage_km_total": 10975,
+ "coverage_runs": 48743,
+ "days_of_rollups": 39,
+ "ev_displayed": 6983,
+ "ev_displayed_per_day_median": 224,
+ "ev_duration_p50_min": 73,
+ "ev_duration_p90_min": 1030,
+ "ev_logged_days": 31,
+ "ev_match_10veh_2routes": {
+  "matched": 340,
+  "n": 785,
+  "pct": 43.3
+ },
+ "ev_match_2routes": {
+  "matched": 1110,
+  "n": 3968,
+  "pct": 28.0
+ },
+ "ev_match_5veh": {
+  "matched": 666,
+  "n": 1971,
+  "pct": 33.8
+ },
+ "ev_match_all": {
+  "matched": 1749,
+  "n": 6983,
+  "pct": 25.0
+ },
+ "ev_outcomes": {
+  "other": 133,
+  "recovered": 4743,
+  "stale": 2107
+ },
+ "ev_peak_hour_utc": 5,
+ "ev_routes_p50": 2,
+ "ev_routes_p90": 6,
+ "ev_share_single_route_pct": 43.2,
+ "ev_total_ids": 35542,
+ "ev_vehicles_p50": 3,
+ "ev_vehicles_p90": 12,
+ "first_day": "2026-08-20",
+ "fix_interval_over_300s_pct": 1.2,
+ "fix_interval_p10_s": 15,
+ "fix_interval_p50_s": 41,
+ "fix_interval_p90_s": 62,
+ "fix_interval_p99_s": 396,
+ "fix_pairs_total": 299463832,
+ "fixes_per_day_weekday_median": 8708985,
+ "fixes_per_day_weekend_median": 7638989,
+ "fleet_peak_weekday_time_utc": "14:59",
+ "fleet_peak_weekday_vehicles_per_minute": 6189,
+ "health_first": "2026-09-04",
+ "health_last": "2026-09-28",
+ "health_restarts": 21,
+ "health_samples": 4999,
+ "heap_mb_p50": 238,
+ "journey_case_fixes": 1370,
+ "journey_case_gaps": 5,
+ "journey_case_layovers": 18,
+ "journey_case_mislabelled_fixes": 12,
+ "journeys": {
+  "all": {
+   "dur_s_p50": 2670,
+   "fixes_p50": 58,
+   "len_m_p50": 10033.267510855127,
+   "n_per_day_median": 151778
+  },
+  "complete": {
+   "dur_s_p50": 3429,
+   "fixes_p50": 76,
+   "len_m_p50": 12205.733537244936,
+   "n_per_day_median": 105614
+  },
+  "other_all": {
+   "dur_s_p50": 1945,
+   "fixes_p50": 74,
+   "len_m_p50": 10381.040088597465,
+   "n_per_day_median": 8551
+  },
+  "other_complete": {
+   "dur_s_p50": 2346,
+   "fixes_p50": 87,
+   "len_m_p50": 12977.917252000741,
+   "n_per_day_median": 7308
+  },
+  "tflo_all": {
+   "dur_s_p50": 2710,
+   "fixes_p50": 57,
+   "len_m_p50": 10025.172824523544,
+   "n_per_day_median": 142538
+  },
+  "tflo_complete": {
+   "dur_s_p50": 3480,
+   "fixes_p50": 76,
+   "len_m_p50": 12196.102622480701,
+   "n_per_day_median": 98293
+  }
+ },
+ "journeys_per_day_weekday_median": 148750,
+ "journeys_per_day_weekend_median": 139586,
+ "kf_case_accepted": 675,
+ "kf_case_day": "2026-09-25",
+ "kf_case_fixes": 700,
+ "kf_case_gated": 0,
+ "kf_case_resets": 0,
+ "kf_case_route": "11 inbound",
+ "kf_case_sigma_s_p50": 10.2,
+ "kf_case_snapped_pct": 96.4,
+ "kf_case_vehicle": "TFLO:LTZ1502",
+ "kf_case_window_fixes": 57,
+ "last_day": "2026-09-27",
+ "learn_case_corridor_m": 30,
+ "learn_case_fixes": 11137,
+ "learn_case_route": "68 inbound",
+ "learn_case_vertex_points": 161,
+ "learn_case_vertex_trimmed": 32,
+ "learned_coverage_below_0_9": 687,
+ "learned_coverage_p10": 0.71,
+ "learned_coverage_p50": 0.912,
+ "learned_journeys_p50": 98,
+ "learned_residual_max": 34.4,
+ "learned_residual_p50": 7.9,
+ "learned_residual_p90": 16.3,
+ "learned_residual_tflo_p50": 7.1,
+ "learned_routes_tflo": 1304,
+ "learned_routes_total": 1952,
+ "learned_snapshot": "2026-09-28",
+ "learner_duration_min": 29,
+ "learner_keys_attempted": 1647,
+ "learner_keys_learned": 1647,
+ "learner_keys_seen": 2210,
+ "learner_mean_residual_m": 8,
+ "learner_repairs_kept": 543,
+ "learner_run_last_day": "2026-09-27",
+ "learner_skipped_geometry": 0,
+ "learner_skipped_insufficient": 563,
+ "learner_skipped_seed": 0,
+ "lowcov_case_coverage": 0.788,
+ "lowcov_case_fixes": 5867,
+ "lowcov_case_inside_pct": 79.2,
+ "lowcov_case_outside_pct": 20.8,
+ "lowcov_case_route": "244 outbound",
+ "malformed_lines_total": 0,
+ "operator_2nd_name": "NATX",
+ "operator_2nd_pct": 1.5,
+ "operator_3rd_name": "FALC",
+ "operator_3rd_pct": 0.6,
+ "operator_fix_share_pct": {
+  "ARHE": 0.5,
+  "FALC": 0.6,
+  "FAST": 0.6,
+  "FTVA": 0.5,
+  "NATX": 1.5,
+  "SCOX": 0.4,
+  "TFLO": 91.4,
+  "WNGS": 0.5
+ },
+ "operators_top8_text": "TFLO 91.4%, NATX 1.5%, FALC 0.6%, FAST 0.6%, ARHE 0.5%, FTVA 0.5%, WNGS 0.5%, SCOX 0.4%",
+ "restart_days": [
+  "09-04",
+  "09-05",
+  "09-11",
+  "09-14"
+ ],
+ "route_keys_weekday_median": 2135,
+ "rss_mb_max": 1559,
+ "rss_mb_p50": 647,
+ "scan_days": 38,
+ "speed_glitch_pct": 0.036,
+ "speed_p50_ms": 3.5,
+ "speed_p90_ms": 9.0,
+ "tfl_match_by_category": {
+  "Asset issues": 30,
+  "Breakdowns": 19,
+  "Collisions": 75,
+  "Emergency service incidents": 26,
+  "Hazards": 10,
+  "Planned events": 61,
+  "Works": 1528
+ },
+ "tfl_match_events": 6983,
+ "tfl_match_events_without_polyline": 248,
+ "tfl_match_matched": 1749,
+ "tfl_match_pct": 25.0,
+ "tfl_snapshot_gap_p50_s": 5124,
+ "tfl_snapshots": 186,
+ "tflo_fix_share_pct": 91.4,
+ "vehicle_states_p50": 7278,
+ "vehicles_per_day_weekday_median": 8850,
+ "vehicles_per_day_weekend_median": 8313
+}

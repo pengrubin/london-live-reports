@@ -1,0 +1,25 @@
+{
+ "days": 31,
+ "events_total": 35542,
+ "events_displayed": 6983,
+ "displayed_by_severity": {
+  "": 6983
+ },
+ "displayed_by_outcome": {
+  "stale": 2107,
+  "other": 133,
+  "recovered": 4743
+ },
+ "displayed_tfl_matched": 0,
+ "displayed_tfl_matched_pct": 0.0,
+ "displayed_duration_s_p50": 4385,
+ "displayed_routes_p50": 2,
+ "transitions": {
+  "created": 45010,
+  "displayed": 8317,
+  "recovering": 26507,
+  "dropped": 36771,
+  "stale": 15897,
+  "reactivated": 2993
+ }
+}

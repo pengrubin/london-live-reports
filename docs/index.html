@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>London Live technical notes</title>
+<style>
+  :root { --ink: #1f2a37; --muted: #6b7480; --red: #c8102e; --bg: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e8ecf1; --muted: #9aa3ad; --bg: #0f1115; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 32px; }
+  article { padding: 20px 0; border-top: 1px solid rgba(128,128,128,.25); }
+  article h2 { font-size: 19px; margin: 0 0 6px; }
+  article p { margin: 0 0 10px; color: var(--muted); }
+  a { color: var(--red); text-decoration: none; } a:hover { text-decoration: underline; }
+  .links a { margin-right: 18px; font-weight: 600; }
+  .soon { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<main>
+  <h1>London Live technical notes</h1>
+  <p class="sub">How <a href="https://london.pengrubin.com">london.pengrubin.com</a> is built, written for people who work with the data. Hongwei Peng.</p>
+
+  <article>
+    <h2>1. Bus GPS processing</h2>
+    <p>Route shapes learned from vehicle traces, on-map snapping with an along-route Kalman filter, and diversion detection with an evidence-based lifecycle. Measured on 38 days of the BODS SIRI-VM feed.</p>
+    <p class="links"><a href="bus-gps/report.html">Read online</a> <a href="bus-gps/report.pdf">PDF</a> <a href="https://github.com/pengrubin/london-live-2d">Source</a></p>
+  </article>
+
+  <article>
+    <h2>2. Tube position inference</h2>
+    <p class="soon">In preparation: how train positions are inferred from arrival countdowns and how feed noise is handled.</p>
+  </article>
+
+  <article>
+    <h2>3. Backend and running cost</h2>
+    <p class="soon">In preparation: architecture, per-upstream budgets, memory and egress, and how each was reduced.</p>
+  </article>
+</main>
+</body>
+</html>
