@@ -4,7 +4,7 @@ How [london.pengrubin.com](https://london.pengrubin.com) is built, written for p
 
 | # | Document | Read | Status |
 |---|---|---|---|
-| 1 | **Bus GPS processing**: route shapes learned from vehicle traces, on-map snapping with an along-route Kalman filter, diversion detection with an evidence-based lifecycle | [HTML](https://pengrubin.github.io/london-live-reports/bus-gps/report.html) · [PDF](https://pengrubin.github.io/london-live-reports/bus-gps/report.pdf) | v1, 29 Sep 2026 |
+| 1 | **Bus GPS processing**: route shapes learned from vehicle traces, on-map snapping with an along-route Kalman filter, diversion detection with an evidence-based lifecycle | [HTML](https://docs.london.pengrubin.com/bus-gps/report.html) · [PDF](https://docs.london.pengrubin.com/bus-gps/report.pdf) | v1, 29 Sep 2026 |
 | 2 | Tube position inference from arrival countdowns | | in preparation |
 | 3 | Backend architecture and running cost | | in preparation |
 
