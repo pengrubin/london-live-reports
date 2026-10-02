@@ -1,0 +1,1721 @@
+{
+  "measurement": "D: CPU by stage, local run",
+  "measured_on": "2026-09-29",
+  "run_window_utc_ms": {
+    "start": 1790720084480,
+    "end": 1790720864480
+  },
+  "environment": "node v24.13.0, commit 6875e27",
+  "method": "node --cpu-prof (V8 sampling profiler, main thread) on origin/main in a dedicated worktree; 60 s warm-up excluded; then a quiet phase (pollers only) and a viewer phase (one synthetic browser at the frontend's poll intervals, Accept-Encoding br). process.cpuUsage() sampled every 30 s by a --import preload; no repository file was edited.",
+  "profiler_attached": true,
+  "profile_sampling_interval_us": 1500.0,
+  "windows": {
+    "quiet (pipeline only, no viewer)": {
+      "wall_seconds": 360.0,
+      "bus_polls_in_window": 24.0,
+      "profile_samples_ms": 360000.7,
+      "profile_coverage_of_wall": 1.0,
+      "main_thread_busy_ms_per_15s": 203.7,
+      "main_thread_utilisation": 0.0136,
+      "process_cpu_ms_per_15s (user+system, all threads)": 832.9,
+      "process_cpu_utilisation_of_one_core": 0.0555,
+      "off_main_thread_ms_per_15s (process minus profile busy)": 629.3,
+      "stages": [
+        {
+          "stage": "idle",
+          "cpu_ms_total": 355113.0,
+          "cpu_ms_per_15s_bus_poll": 14796.38,
+          "share_of_main_thread_busy": null,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "(idle)  [native:0]",
+              "ms": 14796.38
+            }
+          ]
+        },
+        {
+          "stage": "GC",
+          "cpu_ms_total": 885.0,
+          "cpu_ms_per_15s_bus_poll": 36.88,
+          "share_of_main_thread_busy": 0.1811,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "(garbage collector)  [native:0]",
+              "ms": 36.88
+            }
+          ]
+        },
+        {
+          "stage": "node I/O glue: TLS, sockets, streams, zlib bindings",
+          "cpu_ms_total": 838.6,
+          "cpu_ms_per_15s_bus_poll": 34.94,
+          "share_of_main_thread_busy": 0.1716,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "nextTick  [node:internal/process/task_queues:111]",
+              "ms": 4.84
+            },
+            {
+              "fn": "processCallback  [node:zlib:504]",
+              "ms": 4.19
+            },
+            {
+              "fn": "runMicrotasks  [native:0]",
+              "ms": 2.64
+            },
+            {
+              "fn": "TLSSocket.getPeerCertificate  [node:_tls_wrap:1134]",
+              "ms": 1.57
+            },
+            {
+              "fn": "createAsyncIterator  [node:internal/streams/readable:1362]",
+              "ms": 1.45
+            }
+          ]
+        },
+        {
+          "stage": "BODS parse + vehicle table",
+          "cpu_ms_total": 758.5,
+          "cpu_ms_per_15s_bus_poll": 31.6,
+          "share_of_main_thread_busy": 0.1552,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "tagText  [backend/src/bods-client.ts:1]",
+              "ms": 12.35
+            },
+            {
+              "fn": "parseSiriVm  [backend/src/bods-client.ts:1]",
+              "ms": 7.59
+            },
+            {
+              "fn": "(anonymous)  [native:0]",
+              "ms": 1.85
+            },
+            {
+              "fn": "utf8Slice  [native:0]",
+              "ms": 1.56
+            },
+            {
+              "fn": "slice  [node:buffer:650]",
+              "ms": 1.4
+            }
+          ]
+        },
+        {
+          "stage": "upstream fetch: undici client",
+          "cpu_ms_total": 627.6,
+          "cpu_ms_per_15s_bus_poll": 26.15,
+          "share_of_main_thread_busy": 0.1284,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "fetchParams.controller.resume  [node:internal/deps/undici/undici:12656]",
+              "ms": 5.0
+            },
+            {
+              "fn": "_copyActual  [node:buffer:245]",
+              "ms": 2.64
+            },
+            {
+              "fn": "readableByteStreamControllerEnqueue  [node:internal/webstreams/readablestream:2792]",
+              "ms": 1.0
+            },
+            {
+              "fn": "nextTick  [node:internal/process/task_queues:111]",
+              "ms": 0.71
+            },
+            {
+              "fn": "writeLatin1String  [native:0]",
+              "ms": 0.59
+            }
+          ]
+        },
+        {
+          "stage": "leaderboard sampling",
+          "cpu_ms_total": 581.7,
+          "cpu_ms_per_15s_bus_poll": 24.24,
+          "share_of_main_thread_busy": 0.119,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "inferTrains  [backend/src/shared/position-inference.ts:1]",
+              "ms": 7.0
+            },
+            {
+              "fn": "record  [backend/src/leaderboard.ts:1]",
+              "ms": 3.46
+            },
+            {
+              "fn": "persist  [backend/src/leaderboard.ts:1]",
+              "ms": 2.09
+            },
+            {
+              "fn": "sampleBuses  [backend/src/leaderboard.ts:1]",
+              "ms": 1.19
+            },
+            {
+              "fn": "sampleTrains  [backend/src/leaderboard.ts:1]",
+              "ms": 1.06
+            }
+          ]
+        },
+        {
+          "stage": "(program): native code outside JS",
+          "cpu_ms_total": 452.6,
+          "cpu_ms_per_15s_bus_poll": 18.86,
+          "share_of_main_thread_busy": 0.0926,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "(program)  [native:0]",
+              "ms": 18.86
+            }
+          ]
+        },
+        {
+          "stage": "upstream body: JSON.parse (TfL, Darwin, EA)",
+          "cpu_ms_total": 381.0,
+          "cpu_ms_per_15s_bus_poll": 15.87,
+          "share_of_main_thread_busy": 0.0779,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "parseJSONFromBytes  [node:internal/deps/undici/undici:4258]",
+              "ms": 13.99
+            },
+            {
+              "fn": "decode  [node:internal/encoding:440]",
+              "ms": 1.82
+            },
+            {
+              "fn": "decodeUTF8  [native:0]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "diversion detector",
+          "cpu_ms_total": 201.6,
+          "cpu_ms_per_15s_bus_poll": 8.4,
+          "share_of_main_thread_busy": 0.0412,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "projectFix  [backend/src/route-projection.ts:1]",
+              "ms": 3.72
+            },
+            {
+              "fn": "record  [backend/src/diversion-detector.ts:2]",
+              "ms": 3.29
+            },
+            {
+              "fn": "updateShapeGate  [backend/src/diversion-detector.ts:1]",
+              "ms": 0.34
+            },
+            {
+              "fn": "stepVehicle  [backend/src/diversion-detector.ts:1]",
+              "ms": 0.31
+            },
+            {
+              "fn": "(anonymous)  [backend/src/diversion-detector.ts:1]",
+              "ms": 0.25
+            }
+          ]
+        },
+        {
+          "stage": "upstream body: UTF-8 decode to string (BODS XML)",
+          "cpu_ms_total": 62.7,
+          "cpu_ms_per_15s_bus_poll": 2.61,
+          "share_of_main_thread_busy": 0.0128,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "decode  [node:internal/encoding:440]",
+              "ms": 2.61
+            }
+          ]
+        },
+        {
+          "stage": "trace writer",
+          "cpu_ms_total": 39.2,
+          "cpu_ms_per_15s_bus_poll": 1.64,
+          "share_of_main_thread_busy": 0.008,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "record  [backend/src/trace-writer.ts:1]",
+              "ms": 1.32
+            },
+            {
+              "fn": "flush  [backend/src/trace-writer.ts:1]",
+              "ms": 0.12
+            },
+            {
+              "fn": "normalizeString  [node:path:92]",
+              "ms": 0.06
+            },
+            {
+              "fn": "getOptions  [node:internal/fs/utils:318]",
+              "ms": 0.06
+            },
+            {
+              "fn": "utcDateStamp  [backend/src/trace-writer.ts:1]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "measurement overhead (preload)",
+          "cpu_ms_total": 18.6,
+          "cpu_ms_per_15s_bus_poll": 0.77,
+          "share_of_main_thread_busy": 0.0038,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "writeFileUtf8  [native:0]",
+              "ms": 0.27
+            },
+            {
+              "fn": "memoryUsage  [native:0]",
+              "ms": 0.19
+            },
+            {
+              "fn": "sanitise  [scripts/preload-metrics.mjs:32]",
+              "ms": 0.07
+            },
+            {
+              "fn": "(anonymous)  [scripts/preload-metrics.mjs:56]",
+              "ms": 0.07
+            },
+            {
+              "fn": "write  [scripts/preload-metrics.mjs:83]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "AIS stream",
+          "cpu_ms_total": 14.8,
+          "cpu_ms_per_15s_bus_poll": 0.62,
+          "share_of_main_thread_busy": 0.003,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "handleMessage  [backend/src/ais-client.ts:1]",
+              "ms": 0.3
+            },
+            {
+              "fn": "arrayBuffer  [node:internal/blob:407]",
+              "ms": 0.07
+            },
+            {
+              "fn": "get data  [node:internal/deps/undici/undici:12891]",
+              "ms": 0.06
+            },
+            {
+              "fn": "readNext  [node:internal/blob:411]",
+              "ms": 0.06
+            },
+            {
+              "fn": "prune  [backend/src/ais-client.ts:1]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "serve: routes, serialise, compress (main thread)",
+          "cpu_ms_total": 14.4,
+          "cpu_ms_per_15s_bus_poll": 0.6,
+          "share_of_main_thread_busy": 0.0029,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "clearBuffer  [node:internal/streams/writable:742]",
+              "ms": 0.22
+            },
+            {
+              "fn": "writeString  [native:0]",
+              "ms": 0.06
+            },
+            {
+              "fn": "memoryUsage  [native:0]",
+              "ms": 0.06
+            },
+            {
+              "fn": "getLibuvNow  [native:0]",
+              "ms": 0.06
+            },
+            {
+              "fn": "(anonymous)  [backend/src/app.ts:1]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "status + disruption shaping",
+          "cpu_ms_total": 11.4,
+          "cpu_ms_per_15s_bus_poll": 0.48,
+          "share_of_main_thread_busy": 0.0023,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "resumeH1  [node_modules/undici/lib/dispatcher/client-h1.js:1086]",
+              "ms": 0.11
+            },
+            {
+              "fn": "(anonymous)  [backend/src/crash-guard.ts:1]",
+              "ms": 0.06
+            },
+            {
+              "fn": "windowMisses  [backend/src/status-recorder.ts:1]",
+              "ms": 0.06
+            },
+            {
+              "fn": "configSecureContext  [node:internal/tls/secure-context:129]",
+              "ms": 0.06
+            },
+            {
+              "fn": "record  [backend/src/status-recorder.ts:1]",
+              "ms": 0.06
+            }
+          ]
+        }
+      ],
+      "top_self_time_functions": [
+        {
+          "fn": "(garbage collector)  [native:0]",
+          "ms_per_15s": 36.88
+        },
+        {
+          "fn": "(program)  [native:0]",
+          "ms_per_15s": 18.86
+        },
+        {
+          "fn": "parseJSONFromBytes  [node:internal/deps/undici/undici:4258]",
+          "ms_per_15s": 13.99
+        },
+        {
+          "fn": "tagText  [backend/src/bods-client.ts:1]",
+          "ms_per_15s": 12.35
+        },
+        {
+          "fn": "parseSiriVm  [backend/src/bods-client.ts:1]",
+          "ms_per_15s": 7.59
+        },
+        {
+          "fn": "inferTrains  [backend/src/shared/position-inference.ts:1]",
+          "ms_per_15s": 7.0
+        },
+        {
+          "fn": "nextTick  [node:internal/process/task_queues:111]",
+          "ms_per_15s": 5.61
+        },
+        {
+          "fn": "fetchParams.controller.resume  [node:internal/deps/undici/undici:12656]",
+          "ms_per_15s": 5.0
+        },
+        {
+          "fn": "decode  [node:internal/encoding:440]",
+          "ms_per_15s": 4.43
+        },
+        {
+          "fn": "processCallback  [node:zlib:504]",
+          "ms_per_15s": 4.19
+        },
+        {
+          "fn": "projectFix  [backend/src/route-projection.ts:1]",
+          "ms_per_15s": 3.72
+        },
+        {
+          "fn": "record  [backend/src/leaderboard.ts:1]",
+          "ms_per_15s": 3.46
+        },
+        {
+          "fn": "record  [backend/src/diversion-detector.ts:2]",
+          "ms_per_15s": 3.29
+        },
+        {
+          "fn": "_copyActual  [node:buffer:245]",
+          "ms_per_15s": 2.64
+        },
+        {
+          "fn": "runMicrotasks  [native:0]",
+          "ms_per_15s": 2.64
+        },
+        {
+          "fn": "persist  [backend/src/leaderboard.ts:1]",
+          "ms_per_15s": 2.09
+        },
+        {
+          "fn": "createAsyncIterator  [node:internal/streams/readable:1362]",
+          "ms_per_15s": 1.89
+        },
+        {
+          "fn": "(anonymous)  [native:0]",
+          "ms_per_15s": 1.85
+        },
+        {
+          "fn": "FastBuffer  [node:internal/buffer:956]",
+          "ms_per_15s": 1.84
+        },
+        {
+          "fn": "processChunk  [node:zlib:484]",
+          "ms_per_15s": 1.68
+        },
+        {
+          "fn": "TLSSocket.getPeerCertificate  [node:_tls_wrap:1134]",
+          "ms_per_15s": 1.57
+        },
+        {
+          "fn": "utf8Slice  [native:0]",
+          "ms_per_15s": 1.56
+        },
+        {
+          "fn": "slice  [node:buffer:650]",
+          "ms_per_15s": 1.4
+        },
+        {
+          "fn": "record  [backend/src/trace-writer.ts:1]",
+          "ms_per_15s": 1.32
+        },
+        {
+          "fn": "sampleBuses  [backend/src/leaderboard.ts:1]",
+          "ms_per_15s": 1.19
+        },
+        {
+          "fn": "createUnsafeBuffer  [node:internal/buffer:1082]",
+          "ms_per_15s": 1.15
+        },
+        {
+          "fn": "TLSSocket._start  [node:_tls_wrap:1097]",
+          "ms_per_15s": 1.13
+        },
+        {
+          "fn": "poll  [backend/src/bods-client.ts:1]",
+          "ms_per_15s": 1.1
+        },
+        {
+          "fn": "onwrite  [node:internal/streams/writable:613]",
+          "ms_per_15s": 1.1
+        }
+      ]
+    },
+    "viewer (pipeline + one synthetic viewer)": {
+      "wall_seconds": 360.0,
+      "bus_polls_in_window": 24.0,
+      "profile_samples_ms": 359999.4,
+      "profile_coverage_of_wall": 1.0,
+      "main_thread_busy_ms_per_15s": 300.8,
+      "main_thread_utilisation": 0.0201,
+      "process_cpu_ms_per_15s (user+system, all threads)": 1035.7,
+      "process_cpu_utilisation_of_one_core": 0.069,
+      "off_main_thread_ms_per_15s (process minus profile busy)": 734.9,
+      "stages": [
+        {
+          "stage": "idle",
+          "cpu_ms_total": 352780.4,
+          "cpu_ms_per_15s_bus_poll": 14699.19,
+          "share_of_main_thread_busy": null,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "(idle)  [native:0]",
+              "ms": 14699.19
+            }
+          ]
+        },
+        {
+          "stage": "node I/O glue: TLS, sockets, streams, zlib bindings",
+          "cpu_ms_total": 1541.6,
+          "cpu_ms_per_15s_bus_poll": 64.24,
+          "share_of_main_thread_busy": 0.2136,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "nextTick  [node:internal/process/task_queues:111]",
+              "ms": 11.09
+            },
+            {
+              "fn": "processCallback  [node:zlib:504]",
+              "ms": 5.88
+            },
+            {
+              "fn": "processChunk  [node:zlib:484]",
+              "ms": 2.89
+            },
+            {
+              "fn": "(anonymous)  [native:0]",
+              "ms": 2.86
+            },
+            {
+              "fn": "TLSSocket.getPeerCertificate  [node:_tls_wrap:1134]",
+              "ms": 2.86
+            }
+          ]
+        },
+        {
+          "stage": "GC",
+          "cpu_ms_total": 976.2,
+          "cpu_ms_per_15s_bus_poll": 40.68,
+          "share_of_main_thread_busy": 0.1352,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "(garbage collector)  [native:0]",
+              "ms": 40.68
+            }
+          ]
+        },
+        {
+          "stage": "BODS parse + vehicle table",
+          "cpu_ms_total": 797.2,
+          "cpu_ms_per_15s_bus_poll": 33.22,
+          "share_of_main_thread_busy": 0.1104,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "tagText  [backend/src/bods-client.ts:1]",
+              "ms": 13.27
+            },
+            {
+              "fn": "parseSiriVm  [backend/src/bods-client.ts:1]",
+              "ms": 8.5
+            },
+            {
+              "fn": "(anonymous)  [native:0]",
+              "ms": 1.76
+            },
+            {
+              "fn": "poll  [backend/src/bods-client.ts:1]",
+              "ms": 1.73
+            },
+            {
+              "fn": "slice  [node:buffer:650]",
+              "ms": 1.57
+            }
+          ]
+        },
+        {
+          "stage": "serve: routes, serialise, compress (main thread)",
+          "cpu_ms_total": 792.7,
+          "cpu_ms_per_15s_bus_poll": 33.03,
+          "share_of_main_thread_busy": 0.1098,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "serialize  [node_modules/fastify/lib/reply.js:1078]",
+              "ms": 19.13
+            },
+            {
+              "fn": "(anonymous)  [native:0]",
+              "ms": 2.54
+            },
+            {
+              "fn": "SecureContext  [node:_tls_common:72]",
+              "ms": 0.8
+            },
+            {
+              "fn": "_copyActual  [node:buffer:245]",
+              "ms": 0.44
+            },
+            {
+              "fn": "configSecureContext  [node:internal/tls/secure-context:129]",
+              "ms": 0.32
+            }
+          ]
+        },
+        {
+          "stage": "upstream fetch: undici client",
+          "cpu_ms_total": 743.7,
+          "cpu_ms_per_15s_bus_poll": 30.99,
+          "share_of_main_thread_busy": 0.103,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "fetchParams.controller.resume  [node:internal/deps/undici/undici:12656]",
+              "ms": 4.2
+            },
+            {
+              "fn": "_copyActual  [node:buffer:245]",
+              "ms": 2.84
+            },
+            {
+              "fn": "nextTick  [node:internal/process/task_queues:111]",
+              "ms": 0.89
+            },
+            {
+              "fn": "writeLatin1String  [native:0]",
+              "ms": 0.7
+            },
+            {
+              "fn": "readableByteStreamControllerEnqueue  [node:internal/webstreams/readablestream:2792]",
+              "ms": 0.67
+            }
+          ]
+        },
+        {
+          "stage": "leaderboard sampling",
+          "cpu_ms_total": 688.8,
+          "cpu_ms_per_15s_bus_poll": 28.7,
+          "share_of_main_thread_busy": 0.0954,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "inferTrains  [backend/src/shared/position-inference.ts:1]",
+              "ms": 7.2
+            },
+            {
+              "fn": "record  [backend/src/leaderboard.ts:1]",
+              "ms": 5.25
+            },
+            {
+              "fn": "persist  [backend/src/leaderboard.ts:1]",
+              "ms": 2.74
+            },
+            {
+              "fn": "snapshot  [backend/src/leaderboard.ts:1]",
+              "ms": 1.59
+            },
+            {
+              "fn": "metersBetween  [backend/src/shared/geometry.ts:1]",
+              "ms": 1.13
+            }
+          ]
+        },
+        {
+          "stage": "upstream body: JSON.parse (TfL, Darwin, EA)",
+          "cpu_ms_total": 686.7,
+          "cpu_ms_per_15s_bus_poll": 28.61,
+          "share_of_main_thread_busy": 0.0951,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "parseJSONFromBytes  [node:internal/deps/undici/undici:4258]",
+              "ms": 24.89
+            },
+            {
+              "fn": "decode  [node:internal/encoding:440]",
+              "ms": 3.72
+            }
+          ]
+        },
+        {
+          "stage": "(program): native code outside JS",
+          "cpu_ms_total": 551.4,
+          "cpu_ms_per_15s_bus_poll": 22.97,
+          "share_of_main_thread_busy": 0.0764,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "(program)  [native:0]",
+              "ms": 22.97
+            }
+          ]
+        },
+        {
+          "stage": "diversion detector",
+          "cpu_ms_total": 237.9,
+          "cpu_ms_per_15s_bus_poll": 9.91,
+          "share_of_main_thread_busy": 0.033,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "projectFix  [backend/src/route-projection.ts:1]",
+              "ms": 3.49
+            },
+            {
+              "fn": "record  [backend/src/diversion-detector.ts:2]",
+              "ms": 3.08
+            },
+            {
+              "fn": "updateShapeGate  [backend/src/diversion-detector.ts:1]",
+              "ms": 1.13
+            },
+            {
+              "fn": "(anonymous)  [backend/src/diversion-detector.ts:1]",
+              "ms": 0.66
+            },
+            {
+              "fn": "noteOffRouteFix  [backend/src/diversion-events.ts:1]",
+              "ms": 0.27
+            }
+          ]
+        },
+        {
+          "stage": "upstream body: UTF-8 decode to string (BODS XML)",
+          "cpu_ms_total": 69.7,
+          "cpu_ms_per_15s_bus_poll": 2.9,
+          "share_of_main_thread_busy": 0.0097,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "decode  [node:internal/encoding:440]",
+              "ms": 2.72
+            },
+            {
+              "fn": "latin1Slice  [native:0]",
+              "ms": 0.12
+            },
+            {
+              "fn": "utf8Slice  [native:0]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "measurement overhead (preload)",
+          "cpu_ms_total": 33.2,
+          "cpu_ms_per_15s_bus_poll": 1.39,
+          "share_of_main_thread_busy": 0.0046,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "writeFileUtf8  [native:0]",
+              "ms": 0.62
+            },
+            {
+              "fn": "sample  [scripts/preload-metrics.mjs:91]",
+              "ms": 0.19
+            },
+            {
+              "fn": "(anonymous)  [scripts/preload-metrics.mjs:56]",
+              "ms": 0.18
+            },
+            {
+              "fn": "(anonymous)  [scripts/preload-metrics.mjs:71]",
+              "ms": 0.12
+            },
+            {
+              "fn": "sanitise  [scripts/preload-metrics.mjs:32]",
+              "ms": 0.08
+            }
+          ]
+        },
+        {
+          "stage": "trace writer",
+          "cpu_ms_total": 31.2,
+          "cpu_ms_per_15s_bus_poll": 1.3,
+          "share_of_main_thread_busy": 0.0043,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "record  [backend/src/trace-writer.ts:1]",
+              "ms": 0.94
+            },
+            {
+              "fn": "utf8Write  [node:internal/buffer:1054]",
+              "ms": 0.19
+            },
+            {
+              "fn": "flush  [backend/src/trace-writer.ts:1]",
+              "ms": 0.12
+            },
+            {
+              "fn": "from  [node:buffer:308]",
+              "ms": 0.05
+            }
+          ]
+        },
+        {
+          "stage": "status + disruption shaping",
+          "cpu_ms_total": 26.8,
+          "cpu_ms_per_15s_bus_poll": 1.11,
+          "share_of_main_thread_busy": 0.0037,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "SecureContext  [node:_tls_common:72]",
+              "ms": 0.19
+            },
+            {
+              "fn": "resumeH1  [node_modules/undici/lib/dispatcher/client-h1.js:1086]",
+              "ms": 0.13
+            },
+            {
+              "fn": "(anonymous)  [backend/src/routes/disruptions.ts:1]",
+              "ms": 0.12
+            },
+            {
+              "fn": "readWindow  [backend/src/disruptions/bus-stop-closures.ts:1]",
+              "ms": 0.06
+            },
+            {
+              "fn": "(anonymous)  [node:internal/deps/undici/undici:4949]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "AIS stream",
+          "cpu_ms_total": 22.7,
+          "cpu_ms_per_15s_bus_poll": 0.95,
+          "share_of_main_thread_busy": 0.0031,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "handleMessage  [backend/src/ais-client.ts:1]",
+              "ms": 0.44
+            },
+            {
+              "fn": "(anonymous)  [backend/src/ais-client.ts:1]",
+              "ms": 0.13
+            },
+            {
+              "fn": "prune  [backend/src/ais-client.ts:1]",
+              "ms": 0.12
+            },
+            {
+              "fn": "arrayBuffer  [node:internal/blob:407]",
+              "ms": 0.12
+            },
+            {
+              "fn": "queueMicrotask  [node:internal/process/task_queues:158]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "tide gauges",
+          "cpu_ms_total": 10.2,
+          "cpu_ms_per_15s_bus_poll": 0.42,
+          "share_of_main_thread_busy": 0.0014,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "TLSSocket._wrapHandle  [node:_tls_wrap:697]",
+              "ms": 0.06
+            },
+            {
+              "fn": "TLSSocket._init  [node:_tls_wrap:824]",
+              "ms": 0.06
+            },
+            {
+              "fn": "SecureContext  [node:_tls_common:72]",
+              "ms": 0.06
+            },
+            {
+              "fn": "fetchParams.controller.next  [node:internal/deps/undici/undici:12624]",
+              "ms": 0.06
+            },
+            {
+              "fn": "(anonymous)  [backend/src/ea-tides.ts:1]",
+              "ms": 0.06
+            }
+          ]
+        },
+        {
+          "stage": "logging (pino)",
+          "cpu_ms_total": 9.0,
+          "cpu_ms_per_15s_bus_poll": 0.38,
+          "share_of_main_thread_busy": 0.0012,
+          "top_functions_ms_per_15s": [
+            {
+              "fn": "writeString  [native:0]",
+              "ms": 0.13
+            },
+            {
+              "fn": "(anonymous)  [native:0]",
+              "ms": 0.06
+            },
+            {
+              "fn": "subarray  [node:buffer:1191]",
+              "ms": 0.06
+            },
+            {
+              "fn": "fromStringFast  [node:buffer:461]",
+              "ms": 0.06
+            },
+            {
+              "fn": "emit  [node:events:455]",
+              "ms": 0.06
+            }
+          ]
+        }
+      ],
+      "top_self_time_functions": [
+        {
+          "fn": "(garbage collector)  [native:0]",
+          "ms_per_15s": 40.68
+        },
+        {
+          "fn": "parseJSONFromBytes  [node:internal/deps/undici/undici:4258]",
+          "ms_per_15s": 24.89
+        },
+        {
+          "fn": "(program)  [native:0]",
+          "ms_per_15s": 22.97
+        },
+        {
+          "fn": "serialize  [node_modules/fastify/lib/reply.js:1078]",
+          "ms_per_15s": 19.13
+        },
+        {
+          "fn": "tagText  [backend/src/bods-client.ts:1]",
+          "ms_per_15s": 13.27
+        },
+        {
+          "fn": "nextTick  [node:internal/process/task_queues:111]",
+          "ms_per_15s": 12.11
+        },
+        {
+          "fn": "parseSiriVm  [backend/src/bods-client.ts:1]",
+          "ms_per_15s": 8.5
+        },
+        {
+          "fn": "(anonymous)  [native:0]",
+          "ms_per_15s": 7.29
+        },
+        {
+          "fn": "inferTrains  [backend/src/shared/position-inference.ts:1]",
+          "ms_per_15s": 7.2
+        },
+        {
+          "fn": "decode  [node:internal/encoding:440]",
+          "ms_per_15s": 6.43
+        },
+        {
+          "fn": "processCallback  [node:zlib:504]",
+          "ms_per_15s": 5.88
+        },
+        {
+          "fn": "record  [backend/src/leaderboard.ts:1]",
+          "ms_per_15s": 5.25
+        },
+        {
+          "fn": "fetchParams.controller.resume  [node:internal/deps/undici/undici:12656]",
+          "ms_per_15s": 4.2
+        },
+        {
+          "fn": "processChunk  [node:zlib:484]",
+          "ms_per_15s": 3.59
+        },
+        {
+          "fn": "projectFix  [backend/src/route-projection.ts:1]",
+          "ms_per_15s": 3.49
+        },
+        {
+          "fn": "_copyActual  [node:buffer:245]",
+          "ms_per_15s": 3.28
+        },
+        {
+          "fn": "record  [backend/src/diversion-detector.ts:2]",
+          "ms_per_15s": 3.08
+        },
+        {
+          "fn": "TLSSocket.getPeerCertificate  [node:_tls_wrap:1134]",
+          "ms_per_15s": 2.86
+        },
+        {
+          "fn": "persist  [backend/src/leaderboard.ts:1]",
+          "ms_per_15s": 2.74
+        },
+        {
+          "fn": "createUnsafeBuffer  [node:internal/buffer:1082]",
+          "ms_per_15s": 2.63
+        },
+        {
+          "fn": "TLSSocket._start  [node:_tls_wrap:1097]",
+          "ms_per_15s": 2.63
+        },
+        {
+          "fn": "runMicrotasks  [native:0]",
+          "ms_per_15s": 2.62
+        },
+        {
+          "fn": "SecureContext  [node:_tls_common:72]",
+          "ms_per_15s": 2.08
+        },
+        {
+          "fn": "utf8Write  [node:internal/buffer:1054]",
+          "ms_per_15s": 1.95
+        },
+        {
+          "fn": "poll  [backend/src/bods-client.ts:1]",
+          "ms_per_15s": 1.73
+        },
+        {
+          "fn": "slice  [node:buffer:650]",
+          "ms_per_15s": 1.62
+        },
+        {
+          "fn": "snapshot  [backend/src/leaderboard.ts:1]",
+          "ms_per_15s": 1.59
+        },
+        {
+          "fn": "methodProxy  [node:_tls_wrap:638]",
+          "ms_per_15s": 1.49
+        },
+        {
+          "fn": "onwrite  [node:internal/streams/writable:613]",
+          "ms_per_15s": 1.32
+        }
+      ]
+    }
+  },
+  "bus_polls_logged": {
+    "count_after_warmup": 48,
+    "vehicles_median": 3314.5,
+    "vehicles_min": 3257,
+    "vehicles_max": 3333,
+    "logged_parse_ms_median": 44.0,
+    "logged_parse_ms_p95": 49,
+    "logged_parse_ms_max": 52,
+    "poll_interval_s_median": 14.97,
+    "note": "the logged 'parse' spans parseSiriVm + table build + wire array + trace sink + diversion detector record(); it is wall time of one synchronous block"
+  },
+  "memory_during_run": {
+    "samples": 25,
+    "rss_mb_peak_health": 606,
+    "rss_mb_median_health": 543,
+    "heap_used_mb_peak_health": 218,
+    "heap_used_mb_median_health": 183,
+    "external_mb_peak_health": 103,
+    "max_rss_mb_os_high_water": 794.6,
+    "components_at_end": {
+      "vehicleStates": 4466,
+      "routeIndexes": 1953,
+      "shapeGates": 1130,
+      "events": 11,
+      "eventMembers": 11,
+      "eventPassages": 2,
+      "upstreamAssertionsSurvived": 0,
+      "httpParserFixed": 1,
+      "lbBuckets": 3,
+      "lbVehicleTotals": 12465,
+      "lbLastFixes": 4393,
+      "cacheArrivals": 1,
+      "cacheStopArrivals": 0,
+      "cacheVehicleArrivals": 0,
+      "cacheStopDetail": 0,
+      "cacheCrowding": 0,
+      "cacheLiftDisruptions": 0,
+      "cacheBikePoints": 0,
+      "cacheDisruptions": 1,
+      "cacheBusStopClosures": 1,
+      "disruptionsItems": 13,
+      "disruptionsSections": 11,
+      "disruptionsStops": 74,
+      "disruptionsSectionsDropped": 0,
+      "disruptionsStopsDropped": 0,
+      "disruptionsLinesDropped": 0,
+      "disruptionsLastParseMs": 1,
+      "busStopClosuresStops": 346,
+      "busStopClosuresDropped": 0,
+      "busStopClosuresUnresolved": 0,
+      "busStopClosuresNotInForce": 23,
+      "busStopClosuresBudgetDeferred": 0,
+      "busStopClosuresLastShapeMs": 2,
+      "evictStopArrivals": 0,
+      "evictVehicleArrivals": 0,
+      "evictStopDetail": 0,
+      "evictCrowding": 0
+    },
+    "series": [
+      {
+        "t_s": 0,
+        "phase": "warmup",
+        "rssMB": 696,
+        "heapUsedMB": 300,
+        "externalMB": 105,
+        "vehicleStates": 0
+      },
+      {
+        "t_s": 30,
+        "phase": "warmup",
+        "rssMB": 751,
+        "heapUsedMB": 211,
+        "externalMB": 100,
+        "vehicleStates": 3329
+      },
+      {
+        "t_s": 60,
+        "phase": "quiet",
+        "rssMB": 570,
+        "heapUsedMB": 218,
+        "externalMB": 103,
+        "vehicleStates": 3402
+      },
+      {
+        "t_s": 90,
+        "phase": "quiet",
+        "rssMB": 598,
+        "heapUsedMB": 163,
+        "externalMB": 66,
+        "vehicleStates": 3461
+      },
+      {
+        "t_s": 120,
+        "phase": "quiet",
+        "rssMB": 601,
+        "heapUsedMB": 182,
+        "externalMB": 66,
+        "vehicleStates": 3539
+      },
+      {
+        "t_s": 150,
+        "phase": "quiet",
+        "rssMB": 606,
+        "heapUsedMB": 165,
+        "externalMB": 72,
+        "vehicleStates": 3570
+      },
+      {
+        "t_s": 180,
+        "phase": "quiet",
+        "rssMB": 230,
+        "heapUsedMB": 198,
+        "externalMB": 80,
+        "vehicleStates": 3622
+      },
+      {
+        "t_s": 210,
+        "phase": "quiet",
+        "rssMB": 430,
+        "heapUsedMB": 165,
+        "externalMB": 66,
+        "vehicleStates": 3658
+      },
+      {
+        "t_s": 240,
+        "phase": "quiet",
+        "rssMB": 470,
+        "heapUsedMB": 186,
+        "externalMB": 80,
+        "vehicleStates": 3713
+      },
+      {
+        "t_s": 270,
+        "phase": "quiet",
+        "rssMB": 453,
+        "heapUsedMB": 177,
+        "externalMB": 76,
+        "vehicleStates": 3759
+      },
+      {
+        "t_s": 300,
+        "phase": "quiet",
+        "rssMB": 458,
+        "heapUsedMB": 165,
+        "externalMB": 66,
+        "vehicleStates": 3805
+      },
+      {
+        "t_s": 330,
+        "phase": "quiet",
+        "rssMB": 455,
+        "heapUsedMB": 183,
+        "externalMB": 80,
+        "vehicleStates": 3860
+      },
+      {
+        "t_s": 360,
+        "phase": "quiet",
+        "rssMB": 476,
+        "heapUsedMB": 185,
+        "externalMB": 80,
+        "vehicleStates": 3907
+      },
+      {
+        "t_s": 390,
+        "phase": "quiet",
+        "rssMB": 476,
+        "heapUsedMB": 164,
+        "externalMB": 66,
+        "vehicleStates": 3998
+      },
+      {
+        "t_s": 420,
+        "phase": "viewer",
+        "rssMB": 490,
+        "heapUsedMB": 172,
+        "externalMB": 76,
+        "vehicleStates": 4014
+      },
+      {
+        "t_s": 450,
+        "phase": "viewer",
+        "rssMB": 521,
+        "heapUsedMB": 199,
+        "externalMB": 90,
+        "vehicleStates": 4054
+      },
+      {
+        "t_s": 480,
+        "phase": "viewer",
+        "rssMB": 545,
+        "heapUsedMB": 198,
+        "externalMB": 99,
+        "vehicleStates": 4084
+      },
+      {
+        "t_s": 510,
+        "phase": "viewer",
+        "rssMB": 552,
+        "heapUsedMB": 173,
+        "externalMB": 76,
+        "vehicleStates": 4114
+      },
+      {
+        "t_s": 540,
+        "phase": "viewer",
+        "rssMB": 569,
+        "heapUsedMB": 196,
+        "externalMB": 91,
+        "vehicleStates": 4144
+      },
+      {
+        "t_s": 570,
+        "phase": "viewer",
+        "rssMB": 575,
+        "heapUsedMB": 195,
+        "externalMB": 99,
+        "vehicleStates": 4182
+      },
+      {
+        "t_s": 600,
+        "phase": "viewer",
+        "rssMB": 584,
+        "heapUsedMB": 198,
+        "externalMB": 98,
+        "vehicleStates": 4227
+      },
+      {
+        "t_s": 630,
+        "phase": "viewer",
+        "rssMB": 570,
+        "heapUsedMB": 182,
+        "externalMB": 75,
+        "vehicleStates": 4266
+      },
+      {
+        "t_s": 660,
+        "phase": "viewer",
+        "rssMB": 565,
+        "heapUsedMB": 186,
+        "externalMB": 78,
+        "vehicleStates": 4304
+      },
+      {
+        "t_s": 690,
+        "phase": "viewer",
+        "rssMB": 543,
+        "heapUsedMB": 195,
+        "externalMB": 89,
+        "vehicleStates": 4351
+      },
+      {
+        "t_s": 720,
+        "phase": "viewer",
+        "rssMB": 539,
+        "heapUsedMB": 171,
+        "externalMB": 67,
+        "vehicleStates": 4386
+      },
+      {
+        "t_s": 750,
+        "phase": "viewer",
+        "rssMB": 533,
+        "heapUsedMB": 170,
+        "externalMB": 69,
+        "vehicleStates": 4426
+      },
+      {
+        "t_s": 780,
+        "phase": "end",
+        "rssMB": 549,
+        "heapUsedMB": 199,
+        "externalMB": 99,
+        "vehicleStates": 4466
+      }
+    ]
+  },
+  "upstream_requests_by_phase": {
+    "quiet (pipeline only, no viewer)": {
+      "observed_seconds": 360,
+      "by_upstream": [
+        {
+          "upstream": "https://data.bus-data.dft.gov.uk/api/v1/datafeed/",
+          "requests": 24,
+          "completed": 24,
+          "status_counts": {
+            "200": 24
+          },
+          "mean_interval_s": 15.0,
+          "wire_bytes_total": 26757695,
+          "wire_bytes_per_completed_request": 1114904,
+          "wire_bytes_per_second": 74326.9
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Line/{list}/Arrivals",
+          "requests": 24,
+          "completed": 24,
+          "status_counts": {
+            "200": 24
+          },
+          "mean_interval_s": 15.0,
+          "wire_bytes_total": 4904832,
+          "wire_bytes_per_completed_request": 204368,
+          "wire_bytes_per_second": 13624.5
+        },
+        {
+          "upstream": "https://api1.raildata.org.uk/{id}/LDBWS/api/20220120/GetDepBoardWithDetails/{crs}",
+          "requests": 24,
+          "completed": 23,
+          "status_counts": {
+            "200": 23
+          },
+          "mean_interval_s": 15.0,
+          "wire_bytes_total": 1999210,
+          "wire_bytes_per_completed_request": 86922,
+          "wire_bytes_per_second": 5553.4
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Line/{list}/Status/{from}/to/{to}",
+          "requests": 3,
+          "completed": 3,
+          "status_counts": {
+            "200": 3
+          },
+          "mean_interval_s": 120.0,
+          "wire_bytes_total": 39576,
+          "wire_bytes_per_completed_request": 13192,
+          "wire_bytes_per_second": 109.9
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Line/Mode/{list}/Status",
+          "requests": 3,
+          "completed": 3,
+          "status_counts": {
+            "200": 3
+          },
+          "mean_interval_s": 120.0,
+          "wire_bytes_total": 4713,
+          "wire_bytes_per_completed_request": 1571,
+          "wire_bytes_per_second": 13.1
+        }
+      ]
+    },
+    "viewer (pipeline + one synthetic viewer)": {
+      "observed_seconds": 360,
+      "by_upstream": [
+        {
+          "upstream": "https://data.bus-data.dft.gov.uk/api/v1/datafeed/",
+          "requests": 25,
+          "completed": 24,
+          "status_counts": {
+            "200": 24
+          },
+          "mean_interval_s": 14.4,
+          "wire_bytes_total": 26736899,
+          "wire_bytes_per_completed_request": 1114037,
+          "wire_bytes_per_second": 74269.2
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Line/{list}/Arrivals",
+          "requests": 41,
+          "completed": 41,
+          "status_counts": {
+            "200": 41
+          },
+          "mean_interval_s": 8.8,
+          "wire_bytes_total": 8061207,
+          "wire_bytes_per_completed_request": 196615,
+          "wire_bytes_per_second": 22392.2
+        },
+        {
+          "upstream": "https://api1.raildata.org.uk/{id}/LDBWS/api/20220120/GetDepBoardWithDetails/{crs}",
+          "requests": 25,
+          "completed": 23,
+          "status_counts": {
+            "200": 23
+          },
+          "mean_interval_s": 14.4,
+          "wire_bytes_total": 1687039,
+          "wire_bytes_per_completed_request": 73350,
+          "wire_bytes_per_second": 4686.2
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Line/{list}/Status/{from}/to/{to}",
+          "requests": 7,
+          "completed": 7,
+          "status_counts": {
+            "200": 7
+          },
+          "mean_interval_s": 51.4,
+          "wire_bytes_total": 92344,
+          "wire_bytes_per_completed_request": 13192,
+          "wire_bytes_per_second": 256.5
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Road/all/Disruption",
+          "requests": 2,
+          "completed": 2,
+          "status_counts": {
+            "200": 2
+          },
+          "mean_interval_s": 180.0,
+          "wire_bytes_total": 70652,
+          "wire_bytes_per_completed_request": 35326,
+          "wire_bytes_per_second": 196.3
+        },
+        {
+          "upstream": "https://environment.data.gov.uk/flood-monitoring/id/stations",
+          "requests": 1,
+          "completed": 1,
+          "status_counts": {
+            "200": 1
+          },
+          "mean_interval_s": 360.0,
+          "wire_bytes_total": 24290,
+          "wire_bytes_per_completed_request": 24290,
+          "wire_bytes_per_second": 67.5
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/StopPoint/Mode/bus/Disruption",
+          "requests": 1,
+          "completed": 1,
+          "status_counts": {
+            "200": 1
+          },
+          "mean_interval_s": 360.0,
+          "wire_bytes_total": 11497,
+          "wire_bytes_per_completed_request": 11497,
+          "wire_bytes_per_second": 31.9
+        },
+        {
+          "upstream": "https://api.tfl.gov.uk/Line/Mode/{list}/Status",
+          "requests": 3,
+          "completed": 3,
+          "status_counts": {
+            "200": 3
+          },
+          "mean_interval_s": 120.0,
+          "wire_bytes_total": 4713,
+          "wire_bytes_per_completed_request": 1571,
+          "wire_bytes_per_second": 13.1
+        },
+        {
+          "upstream": "https://environment.data.gov.uk/flood-monitoring/data/readings",
+          "requests": 1,
+          "completed": 1,
+          "status_counts": {
+            "200": 1
+          },
+          "mean_interval_s": 360.0,
+          "wire_bytes_total": 4400,
+          "wire_bytes_per_completed_request": 4400,
+          "wire_bytes_per_second": 12.2
+        },
+        {
+          "upstream": "https://environment.data.gov.uk/flood-monitoring/id/stations/{ref}/readings",
+          "requests": 10,
+          "completed": 10,
+          "status_counts": {
+            "200": 10
+          },
+          "mean_interval_s": 36.0,
+          "wire_bytes_total": 3560,
+          "wire_bytes_per_completed_request": 356,
+          "wire_bytes_per_second": 9.9
+        },
+        {
+          "upstream": "https://api.airplanes.live/v2/point/51.5/-0.12/30",
+          "requests": 11,
+          "completed": 11,
+          "status_counts": {
+            "403": 11
+          },
+          "mean_interval_s": 32.7,
+          "wire_bytes_total": 1364,
+          "wire_bytes_per_completed_request": 124,
+          "wire_bytes_per_second": 3.8
+        },
+        {
+          "upstream": "https://api.adsb.lol/v2/point/51.5/-0.12/30",
+          "requests": 11,
+          "completed": 9,
+          "status_counts": {
+            "403": 9
+          },
+          "mean_interval_s": 32.7,
+          "wire_bytes_total": 468,
+          "wire_bytes_per_completed_request": 52,
+          "wire_bytes_per_second": 1.3
+        }
+      ]
+    }
+  },
+  "synthetic_viewer": [
+    {
+      "path": "/api/aircraft",
+      "requests": 72,
+      "status_counts": {
+        "502": 72
+      },
+      "br_wire_bytes_median": 0,
+      "ms_median": 2.0,
+      "x_cache": {
+        "None": 72
+      }
+    },
+    {
+      "path": "/api/arrivals",
+      "requests": 36,
+      "status_counts": {
+        "200": 36
+      },
+      "br_wire_bytes_median": 148145.0,
+      "ms_median": 303.0,
+      "x_cache": {
+        "hit": 7,
+        "miss": 29
+      }
+    },
+    {
+      "path": "/api/bikes",
+      "requests": 6,
+      "status_counts": {
+        "200": 6
+      },
+      "br_wire_bytes_median": 2.0,
+      "ms_median": 3.5,
+      "x_cache": {
+        "None": 6
+      }
+    },
+    {
+      "path": "/api/bus-stop-closures",
+      "requests": 2,
+      "status_counts": {
+        "200": 2
+      },
+      "br_wire_bytes_median": 15904.0,
+      "ms_median": 234.0,
+      "x_cache": {
+        "hit": 1,
+        "miss": 1
+      }
+    },
+    {
+      "path": "/api/buses",
+      "requests": 24,
+      "status_counts": {
+        "200": 24
+      },
+      "br_wire_bytes_median": 75837.5,
+      "ms_median": 17.0,
+      "x_cache": {
+        "None": 24
+      }
+    },
+    {
+      "path": "/api/disruptions",
+      "requests": 4,
+      "status_counts": {
+        "200": 4
+      },
+      "br_wire_bytes_median": 2228.0,
+      "ms_median": 276.0,
+      "x_cache": {
+        "miss": 4
+      }
+    },
+    {
+      "path": "/api/diversions",
+      "requests": 4,
+      "status_counts": {
+        "200": 4
+      },
+      "br_wire_bytes_median": 38.0,
+      "ms_median": 2.5,
+      "x_cache": {
+        "None": 4
+      }
+    },
+    {
+      "path": "/api/leaderboard",
+      "requests": 12,
+      "status_counts": {
+        "200": 12
+      },
+      "br_wire_bytes_median": 491.0,
+      "ms_median": 10.0,
+      "x_cache": {
+        "None": 12
+      }
+    },
+    {
+      "path": "/api/road-disruptions",
+      "requests": 3,
+      "status_counts": {
+        "200": 3
+      },
+      "br_wire_bytes_median": 33003,
+      "ms_median": 165,
+      "x_cache": {
+        "hit": 1,
+        "miss": 2
+      }
+    },
+    {
+      "path": "/api/tide-gauges",
+      "requests": 2,
+      "status_counts": {
+        "200": 2
+      },
+      "br_wire_bytes_median": 431.0,
+      "ms_median": 1207.5,
+      "x_cache": {
+        "hit": 1,
+        "miss": 1
+      }
+    },
+    {
+      "path": "/api/vessels",
+      "requests": 36,
+      "status_counts": {
+        "200": 36
+      },
+      "br_wire_bytes_median": 2836.0,
+      "ms_median": 6.0,
+      "x_cache": {
+        "None": 36
+      }
+    }
+  ],
+  "files_written_by_the_run": {
+    "bus-traces": {
+      "bytes": 4620262,
+      "lines": 53364,
+      "run_seconds": 780,
+      "bytes_per_line": 86.6,
+      "lines_per_second": 68.42,
+      "bytes_per_second": 5923.4,
+      "polls_in_run": 52,
+      "new_fixes_per_poll": 1026.2,
+      "new_fixes_per_vehicle_per_poll": 0.31
+    },
+    "diversions": {
+      "bytes": 2567,
+      "lines": 11,
+      "run_seconds": 780,
+      "bytes_per_line": 233.4,
+      "lines_per_second": 0.01,
+      "bytes_per_second": 3.3
+    },
+    "tube-status": {
+      "bytes": 15826,
+      "lines": 1,
+      "run_seconds": 780,
+      "bytes_per_line": 15826.0,
+      "lines_per_second": 0.0,
+      "bytes_per_second": 20.3
+    },
+    "road-disruptions": {
+      "bytes": 44783,
+      "lines": 1,
+      "run_seconds": 780,
+      "bytes_per_line": 44783.0,
+      "lines_per_second": 0.0,
+      "bytes_per_second": 57.4
+    },
+    "leaderboard.json": {
+      "bytes": 1155934,
+      "note": "rewritten in place, not appended"
+    },
+    "coverage/latest.json": {
+      "bytes": 7360270,
+      "note": "rewritten in place, not appended"
+    }
+  },
+  "control_run_without_profiler": {
+    "what": "same worktree, seed, port and preload; node WITHOUT --cpu-prof; pollers only, no viewer",
+    "environment": "node v24.13.0, commit 6875e27; Apple M4; profiler: 0",
+    "window_utc_ms": [
+      1790721283475,
+      1790721554515
+    ],
+    "wall_seconds": 271.0,
+    "process_cpu_ms_per_15s": 423.7,
+    "user_ms_per_15s": 390.7,
+    "system_ms_per_15s": 32.9,
+    "process_cpu_utilisation_of_one_core": 0.0282,
+    "rss_mb_peak_health": 758,
+    "heap_used_mb_peak_health": 189,
+    "heap_used_mb_median_health": 178,
+    "lbLastFixes_median": 3884
+  }
+}

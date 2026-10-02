@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Hongwei Peng">
+<meta name="dcterms.date" content="2026-10-02">
+
+<title>Train Position Inference from Arrival Predictions</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap-c2e55264ed47ce3b2e0326a2269f9400.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#sec-scope" id="toc-sec-scope" class="nav-link" data-scroll-target="#sec-scope"><span class="header-section-number">1</span> Scope and notation</a></li>
+  <li><a href="#sec-feed" id="toc-sec-feed" class="nav-link" data-scroll-target="#sec-feed"><span class="header-section-number">2</span> The data source</a>
+  <ul class="collapse">
+  <li><a href="#sec-feed-what" id="toc-sec-feed-what" class="nav-link" data-scroll-target="#sec-feed-what"><span class="header-section-number">2.1</span> What TfL publishes</a></li>
+  <li><a href="#sec-feed-fetch" id="toc-sec-feed-fetch" class="nav-link" data-scroll-target="#sec-feed-fetch"><span class="header-section-number">2.2</span> How the map fetches it</a></li>
+  <li><a href="#sec-feed-sample" id="toc-sec-feed-sample" class="nav-link" data-scroll-target="#sec-feed-sample"><span class="header-section-number">2.3</span> The recorded sample</a></li>
+  <li><a href="#sec-feed-modes" id="toc-sec-feed-modes" class="nav-link" data-scroll-target="#sec-feed-modes"><span class="header-section-number">2.4</span> What a row looks like, by mode</a></li>
+  <li><a href="#sec-feed-dynamics" id="toc-sec-feed-dynamics" class="nav-link" data-scroll-target="#sec-feed-dynamics"><span class="header-section-number">2.5</span> How the countdown behaves</a></li>
+  </ul></li>
+  <li><a href="#sec-geometry" id="toc-sec-geometry" class="nav-link" data-scroll-target="#sec-geometry"><span class="header-section-number">3</span> Baked geometry</a>
+  <ul class="collapse">
+  <li><a href="#sec-geometry-branches" id="toc-sec-geometry-branches" class="nav-link" data-scroll-target="#sec-geometry-branches"><span class="header-section-number">3.1</span> Branches, stops and segments</a></li>
+  <li><a href="#sec-geometry-runtimes" id="toc-sec-geometry-runtimes" class="nav-link" data-scroll-target="#sec-geometry-runtimes"><span class="header-section-number">3.2</span> Run times</a></li>
+  <li><a href="#sec-geometry-nr" id="toc-sec-geometry-nr" class="nav-link" data-scroll-target="#sec-geometry-nr"><span class="header-section-number">3.3</span> The National Rail graph</a></li>
+  </ul></li>
+  <li><a href="#sec-identity" id="toc-sec-identity" class="nav-link" data-scroll-target="#sec-identity"><span class="header-section-number">4</span> Identity: from rows to trains</a>
+  <ul class="collapse">
+  <li><a href="#sec-identity-stock" id="toc-sec-identity-stock" class="nav-link" data-scroll-target="#sec-identity-stock"><span class="header-section-number">4.1</span> Cross-line de-duplication</a></li>
+  <li><a href="#sec-identity-ladder" id="toc-sec-identity-ladder" class="nav-link" data-scroll-target="#sec-identity-ladder"><span class="header-section-number">4.2</span> The key ladder</a></li>
+  <li><a href="#sec-identity-horizon" id="toc-sec-identity-horizon" class="nav-link" data-scroll-target="#sec-identity-horizon"><span class="header-section-number">4.3</span> The horizon</a></li>
+  <li><a href="#sec-identity-nearest" id="toc-sec-identity-nearest" class="nav-link" data-scroll-target="#sec-identity-nearest"><span class="header-section-number">4.4</span> One train, one stop</a></li>
+  </ul></li>
+  <li><a href="#sec-position" id="toc-sec-position" class="nav-link" data-scroll-target="#sec-position"><span class="header-section-number">5</span> Position on the branch</a>
+  <ul class="collapse">
+  <li><a href="#sec-position-branch" id="toc-sec-position-branch" class="nav-link" data-scroll-target="#sec-position-branch"><span class="header-section-number">5.1</span> Choosing the branch</a></li>
+  <li><a href="#sec-ratio" id="toc-sec-ratio" class="nav-link" data-scroll-target="#sec-ratio"><span class="header-section-number">5.2</span> The ratio model</a></li>
+  <li><a href="#sec-runtime" id="toc-sec-runtime" class="nav-link" data-scroll-target="#sec-runtime"><span class="header-section-number">5.3</span> The run time</a></li>
+  <li><a href="#sec-arms" id="toc-sec-arms" class="nav-link" data-scroll-target="#sec-arms"><span class="header-section-number">5.4</span> The location arms</a></li>
+  <li><a href="#sec-handoff" id="toc-sec-handoff" class="nav-link" data-scroll-target="#sec-handoff"><span class="header-section-number">5.5</span> The hand-off at the platform</a></li>
+  <li><a href="#sec-accuracy" id="toc-sec-accuracy" class="nav-link" data-scroll-target="#sec-accuracy"><span class="header-section-number">5.6</span> What the countdown can promise</a></li>
+  </ul></li>
+  <li><a href="#sec-display" id="toc-sec-display" class="nav-link" data-scroll-target="#sec-display"><span class="header-section-number">6</span> Display</a>
+  <ul class="collapse">
+  <li><a href="#sec-display-blend" id="toc-sec-display-blend" class="nav-link" data-scroll-target="#sec-display-blend"><span class="header-section-number">6.1</span> Blending the countdown</a></li>
+  <li><a href="#sec-display-forward" id="toc-sec-display-forward" class="nav-link" data-scroll-target="#sec-display-forward"><span class="header-section-number">6.2</span> Forward only</a></li>
+  <li><a href="#sec-display-dr" id="toc-sec-display-dr" class="nav-link" data-scroll-target="#sec-display-dr"><span class="header-section-number">6.3</span> Dead reckoning between polls</a></li>
+  <li><a href="#sec-display-absence" id="toc-sec-display-absence" class="nav-link" data-scroll-target="#sec-display-absence"><span class="header-section-number">6.4</span> Absence, retention and succession</a></li>
+  <li><a href="#sec-display-worked" id="toc-sec-display-worked" class="nav-link" data-scroll-target="#sec-display-worked"><span class="header-section-number">6.5</span> A poll, frame by frame</a></li>
+  <li><a href="#sec-display-render" id="toc-sec-display-render" class="nav-link" data-scroll-target="#sec-display-render"><span class="header-section-number">6.6</span> Rendering</a></li>
+  </ul></li>
+  <li><a href="#sec-nr" id="toc-sec-nr" class="nav-link" data-scroll-target="#sec-nr"><span class="header-section-number">7</span> National Rail</a>
+  <ul class="collapse">
+  <li><a href="#sec-nr-boards" id="toc-sec-nr-boards" class="nav-link" data-scroll-target="#sec-nr-boards"><span class="header-section-number">7.1</span> Boards into timelines</a></li>
+  <li><a href="#sec-nr-clock" id="toc-sec-nr-clock" class="nav-link" data-scroll-target="#sec-nr-clock"><span class="header-section-number">7.2</span> Position by the clock</a></li>
+  <li><a href="#sec-nr-gateways" id="toc-sec-nr-gateways" class="nav-link" data-scroll-target="#sec-nr-gateways"><span class="header-section-number">7.3</span> Gateways</a></li>
+  <li><a href="#sec-nr-limits" id="toc-sec-nr-limits" class="nav-link" data-scroll-target="#sec-nr-limits"><span class="header-section-number">7.4</span> What it cannot do</a></li>
+  </ul></li>
+  <li><a href="#sec-validation" id="toc-sec-validation" class="nav-link" data-scroll-target="#sec-validation"><span class="header-section-number">8</span> Validation</a></li>
+  <li><a href="#sec-limits" id="toc-sec-limits" class="nav-link" data-scroll-target="#sec-limits"><span class="header-section-number">9</span> Limitations</a></li>
+  <li><a href="#sec-repro" id="toc-sec-repro" class="nav-link" data-scroll-target="#sec-repro"><span class="header-section-number">10</span> Reproduction</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#sec-rules" id="toc-sec-rules" class="nav-link" data-scroll-target="#sec-rules">Appendix A. The rules and where they live</a></li>
+  <li><a href="#sec-sample" id="toc-sec-sample" class="nav-link" data-scroll-target="#sec-sample">Appendix B. The sample</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="report.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Train Position Inference from Arrival Predictions</h1>
+<p class="subtitle lead">How London Live places Underground, DLR, Overground, Elizabeth line and National Rail trains on a map that has no position feed</p>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Hongwei Peng <a href="mailto:hongwei.peng@qmul.ac.uk" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Queen Mary University of London
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">2 October 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Transport for London publishes no train coordinates. What it publishes is, for every platform, a list of the trains expected there and how many seconds away each one is. London Live (london.pengrubin.com) turns that list into moving trains on a map. This document describes how: the feed and its measured behaviour, the geometry the trains are placed on, how prediction rows are resolved into physical trains, how a countdown becomes a position along a track, how the display keeps a train moving between polls, and how the same idea is applied to National Rail departure boards. There is no ground truth for where a train is, so the validation is a set of self-consistency measurements over 4 days of recorded predictions (8,736 polls, 57,036,040 rows), each tied to the rule it tests. Every measured number in the text is produced by the scripts that accompany the document.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="summary" class="level1 unnumbered">
+<h1 class="unnumbered">Summary</h1>
+<ul>
+<li><strong>The input is a countdown, not a coordinate.</strong> TfL’s Arrivals feed lists, per platform, each approaching train with its identifier (where one exists), its next stop, a free-text location and a time-to-station in seconds. Positions are inferred from the countdown and a baked track geometry: a train that is <span class="math inline">\(t\)</span> seconds from a stop whose approach takes <span class="math inline">\(T\)</span> seconds is placed a fraction <span class="math inline">\(1 - t/T\)</span> along the track into that stop.</li>
+<li><strong>Identity comes first.</strong> One physical train appears as many rows (one per platform ahead), on several lines where lines share rolling stock, and sometimes without an identifier at all. Rows are collapsed to trains by a ladder of keys: the vehicle identifier, else the location text, else, for DLR, the leading edge of the echoed rows; and predictions further than 480 s ahead with no location are treated as timetable, not observation.</li>
+<li><strong>The feed is noisy in known ways, and each rule answers one of them.</strong> Over 4 days of samples, 9.7% of consecutive tube countdown pairs went backwards and tube countdowns moved in 30 s steps rather than ticking; 34.5% of polls brought nothing new; identified tube trains vanished and returned at a rate of 13.1 per 1,000 train-polls; sub-surface lines listed the same train on more than one line in 24.12% of rows; and only the tube lines carry a location text at all. Monotonic progress, countdown blending, 60 s retention and cross-line de-duplication are the responses.</li>
+<li><strong>Run times are the quantity the model has to assume.</strong> Where TfL’s timetable gives a scheduled run time the segment uses it plus a 30 s dwell allowance; where it does not, which is every Overground and Elizabeth line segment, a 12 m/s fallback clamped to 45 to 300 s. The countdown measured at the first poll after a departure, 60 s at the median across the tube, is consistent with the allowance.</li>
+<li><strong>The display is where smoothness comes from.</strong> Positions are recomputed every poll; between polls the train is dead-reckoned along its track at the rate the countdown implies, eased with a 4 s time constant, and never moved backwards within its segment. An identified train the feed drops is coasted for 60 s before it is removed; an unidentified one is handed to its successor or dropped at once.</li>
+<li><strong>National Rail uses the same idea on different data.</strong> Darwin departure boards give calling points with times rather than countdowns, so a service is placed by the clock between its last and next calling point along a baked station graph, with no display smoothing. It is coarser, and the document says where.</li>
+<li><strong>What cannot be claimed.</strong> No position ground truth exists, so accuracy is stated as consistency between what the feed said earlier and what it said later, with the sampling bias of a 30 s recorder made explicit.</li>
+</ul>
+</section>
+<section id="sec-scope" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Scope and notation</h1>
+<p>This is the third of three technical notes on London Live. The first describes bus GPS processing; the second the system’s architecture and load. This one describes the train side: everything between a prediction row leaving TfL’s API and a train icon moving on the map, for the eleven Underground lines, the DLR, the six Overground lines, the Elizabeth line, trams, the cable car and the river services that TfL’s feed covers, and separately for National Rail.</p>
+<p>The body is written as rules with reasons. Each rule is stated with its value, the failure it answers, and, where one exists, the measurement that justifies the value. Values are collected in Appendix A with the file they live in; measurements in Appendix B with the days they were taken and the commit of the application they describe. The analysis scripts, the recorder and the number pipeline are described in <a href="#sec-repro" class="quarto-xref">Section&nbsp;10</a> so that every figure can be regenerated from the recorded samples.</p>
+<div id="tbl-notation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-notation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Notation.
+</figcaption>
+<div aria-describedby="tbl-notation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(t\)</span></td>
+<td>timeToStation: the feed’s countdown to the train’s next stop, seconds</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(T\)</span></td>
+<td>run time assumed for the track segment into that stop, seconds</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(f\)</span></td>
+<td>fraction of the segment’s length the train is placed at, <span class="math inline">\(0\)</span> at the previous stop, <span class="math inline">\(1\)</span> at the next</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(H\)</span></td>
+<td>horizon beyond which a location-less prediction is treated as timetable (480 s)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(t_{plat}\)</span></td>
+<td>countdown at or below which a train is placed at the platform (15 s)</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\tau\)</span></td>
+<td>easing time constant of the display (4 s)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="sec-feed" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> The data source</h1>
+<section id="sec-feed-what" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="sec-feed-what"><span class="header-section-number">2.1</span> What TfL publishes</h2>
+<p>The Unified API’s Arrivals endpoint <span class="citation" data-cites="tflapi">(<a href="#ref-tflapi" role="doc-biblioref">Transport for London, 2026</a>)</span> answers, for a line or a list of lines, with one row per (train, platform) pair: every platform the train is expected to call at next, with the seconds until it does. A row carries the line, the stop (a NaPTAN identifier and a name), the platform, the direction, the destination, a <code>towards</code> text, a <code>vehicleId</code>, a <code>currentLocation</code> text, a <code>timeToStation</code> in seconds, an expected arrival time and a <code>timestamp</code>. It carries no coordinates. The rows are TfL’s own predictions, driven by the signalling systems; the feed is a view of what the prediction engine currently believes, not a log of train movements, and <a href="#sec-feed-dynamics" class="quarto-xref">Section&nbsp;2.5</a> measures how often that view changes.</p>
+<p>Three properties of the rows matter for everything that follows and are measured in this section. The <code>vehicleId</code> is present and stable on most lines, absent on the DLR, and placeholder <code>000</code> on a fraction of rows elsewhere. The <code>currentLocation</code> is free text written by the line’s own system, in a vocabulary that differs by line. And the <code>timestamp</code> is per response, not per row: it says when the body was generated, and a body re-served from a cache keeps it.</p>
+</section>
+<section id="sec-feed-fetch" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="sec-feed-fetch"><span class="header-section-number">2.2</span> How the map fetches it</h2>
+<p>The browser polls one backend route, <code>/api/arrivals</code>, for all 25 line identifiers in the manifest every 10 s; the backend answers from an 8 s cache and fetches from TfL on a miss, so however many tabs are open the origin fetches at most once per 8 s, and the leaderboard sampler keeps a floor of one fetch per 15 s when no tab is open (the second document covers the budgets). A fetch returns 6,533 rows on average over the sample, nights included, about 7 MB decoded (the second document measures the bodies), and the browser reads eleven of the twenty-odd fields on each.</p>
+</section>
+<section id="sec-feed-sample" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="sec-feed-sample"><span class="header-section-number">2.3</span> The recorded sample</h2>
+<p>Everything measured in this document comes from a recorder that polled the same route every 30 s and kept eleven fields per row, those the inference reads (with the destination as its stop identifier rather than its name) plus the row identifier and the response timestamp, each poll as its own compressed record. The sample covers 4 UTC days, 2026-09-28 to 2026-10-01: 8,736 polls, 57,036,040 rows, with hourly coverage of 2026-09-28 (9 h), 2026-09-29 (23 h), 2026-09-30 (21 h), 2026-10-01 (23 h) (<a href="#fig-coverage" class="quarto-xref">Figure&nbsp;1</a>). 34.5% of polls brought nothing new for any line. Counted per line and poll, 24.3% carried the same TfL <code>timestamp</code> as the previous poll, the backend’s cache replaying a body, and 10.24% carried a timestamp <em>older</em> than one already seen, which an 8 s cache cannot do and which points at the edge cache in front of the origin serving a copy it held while the origin had moved on. Both kinds are excluded from every comparison between consecutive polls, so the effective cadence of fresh bodies is 44 s at the median and 75 s at the 90th percentile, and the data age at the moment of a poll (poll time minus TfL timestamp) is 11 s at the median and 43 s at the 90th percentile. The sampler itself missed 6.2 hours in 3 gaps, one of them a morning and one an evening peak.</p>
+<div id="fig-coverage" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-v-5-coverage.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-coverage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Hourly coverage of the recorded sample (2026-09-28 to 2026-10-01), by local time of day. The sampler runs on a laptop and stops when it is closed; gaps are stated rather than filled.
+</figcaption>
+</figure>
+</div>
+<p>Three biases of the recorder must be read into every number below. It polls every 30 s, and sees a fresh body only every 46 s on average, where the map polls every 10 s; so any change that reverses itself within that interval is invisible: counts of regressions and flickers are lower bounds, and a one-poll absence here is a 30 s absence on the map’s scale. And arrival events are observed at poll granularity, so any “time at arrival” carries up to one poll of quantisation. The map adds a bias of its own: it dead-reckons from the moment it received a body, not from the body’s TfL timestamp, so the data age of 11 s at the median puts a moving train about 130 m behind where the feed’s clock would, at 12 m/s.</p>
+</section>
+<section id="sec-feed-modes" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="sec-feed-modes"><span class="header-section-number">2.4</span> What a row looks like, by mode</h2>
+<p>The feed is one endpoint but four different feeds in behaviour (<a href="#tbl-modes" class="quarto-xref">Table&nbsp;2</a>).</p>
+<div id="tbl-modes" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-modes-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: The four behaviours of one feed, measured over the sample (2026-09-28 to 2026-10-01). Overground and Elizabeth identifiers outnumber the fleets, so they identify trips rather than train sets.
+</figcaption>
+<div aria-describedby="tbl-modes-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>Lines</th>
+<th>Trains per poll</th>
+<th>Identifier</th>
+<th>Location text</th>
+<th>Horizon</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tube</td>
+<td>11</td>
+<td>345 trains</td>
+<td>present; <code>000</code> on 1.7% of rows (Metropolitan 25%)</td>
+<td>present, line-specific</td>
+<td>live; first seen 1,590 s ahead (Northern median)</td>
+</tr>
+<tr class="even">
+<td>DLR</td>
+<td>1</td>
+<td>42 leading edges</td>
+<td>absent on every row</td>
+<td>absent</td>
+<td>echoed at every platform ahead</td>
+</tr>
+<tr class="odd">
+<td>Overground</td>
+<td>6</td>
+<td>202 identifiers (per trip, more than the fleet)</td>
+<td>present on every row</td>
+<td>absent</td>
+<td>92.9% of rows beyond the horizon</td>
+</tr>
+<tr class="even">
+<td>Elizabeth</td>
+<td>1</td>
+<td>91 identifiers (per trip)</td>
+<td>present on every row</td>
+<td>absent</td>
+<td>92.9% beyond the horizon; first seen 7,080 s ahead</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Only the tube lines carry a location text; on the DLR, the Overground and the Elizabeth line the field is empty on every row, so every rule in this document that reads it is a tube rule. On the tube the vocabulary is where the lines differ: <a href="#fig-vocab" class="quarto-xref">Figure&nbsp;2</a> shows, per line, the share of rows whose location starts “At”, “Approaching”, “Between”, “Left”, a sidings or depot phrase, or something else. The Northern line writes “Departed X”; the Jubilee “Leaving X”; the Bakerloo “North of X” and “South of X”; and spelling varies (“Plaform”, “Kings Cross P7”). The prefixes the inference recognises are a design decision discussed in <a href="#sec-arms" class="quarto-xref">Section&nbsp;5.4</a>, and the share it does not recognise is measured there.</p>
+<div id="fig-vocab" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-vocab-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-v-3-vocabulary.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-vocab-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Share of rows per <code>currentLocation</code> prefix class, by line, over the sample (2026-09-28 to 2026-10-01). The “other” class is the vocabulary the inference does not interpret.
+</figcaption>
+</figure>
+</div>
+<p>The sub-surface lines (District, Circle, Hammersmith &amp; City, Metropolitan) share rolling stock and track, and TfL lists one physical train under each line it can be assigned to: 24.12% of their identified listings are such cross-line duplicates, and every frequent pairing involves the Hammersmith &amp; City line (district + hammersmith-city 44,832; circle + hammersmith-city 33,969; hammersmith-city + metropolitan 31,348). The six Overground lines show the same at a lower rate, 1.91%, all of it Mildmay with Windrush.</p>
+<p>The DLR is the odd one out. Its rows carry neither an identifier nor a location, and each train is listed against every platform ahead of it, so one train produces 3.32 rows per poll on average at 2.41 distinct platforms; only the leading one, the first platform ahead, says where it is.</p>
+<p>Overground and Elizabeth rows carry an identifier on every row, but the feed reaches far into the timetable: 92.9% of Elizabeth rows are predictions more than 480 s out, for trains that may not have left their origin, and a train first appears at a median horizon of 7,080 s on the Elizabeth line against 1,590 s on the Northern.</p>
+</section>
+<section id="sec-feed-dynamics" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="sec-feed-dynamics"><span class="header-section-number">2.5</span> How the countdown behaves</h2>
+<p>The countdown is the quantity everything is computed from, so its dynamics are the first measurement. For every identified train and platform, consecutive fresh polls give a pair <span class="math inline">\((t_{prev}, t_{new})\)</span> separated by an elapsed time <span class="math inline">\(e\)</span> from the TfL timestamps; the residual <span class="math inline">\(r = t_{prev} - e - t_{new}\)</span> is zero if the countdown ran down exactly with the clock, positive if it jumped ahead, negative if it was pushed back.</p>
+<div id="fig-residual" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-residual-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-v-1-residual.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-residual-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Residual between the countdown’s change and the elapsed time, per mode, over all consecutive fresh polls (2026-09-28 to 2026-10-01). A perfect countdown sits at zero; to the left it fell by less than the clock (stalls and regressions), to the right by more (catch-ups after a stall).
+</figcaption>
+</figure>
+</div>
+<p><a href="#fig-residual" class="quarto-xref">Figure&nbsp;3</a> gives the distribution. On the tube the residual is 0 s at the median but -35 s at the 10th and 30 s at the 90th percentile over 14,563,510 pairs; 9.7% of pairs regressed (the countdown went up) and 27.5% stalled (it did not fall by at least the elapsed time). The shape of the distribution says more than the tails: 48.2% of tube pairs sit at zero, 33.7% at ±30 s and 12.3% at ±60 s, multiples of the recorder’s step. A tube countdown does not tick with the response timestamp; it holds for a step and then catches up, so most of what the stall share counts is this stepping rather than trains held at signals. The DLR, whose countdowns are issued at a fixed spacing rather than measured, steps the same way (-35 to 35 s), with 13.21% of pairs regressing. One caution: the steps are the size of the recorder’s own interval, and a recording at the map’s 10 s cadence is needed to rule out that the step is partly an artefact of sampling. The Overground and Elizabeth lines do the opposite: 98.1% of their pairs have a residual of exactly zero, the countdown is a clock, and the display rules that absorb oscillation are no-ops there. These are the dynamics the display’s blending (<a href="#sec-display" class="quarto-xref">Section&nbsp;6</a>) is sized against.</p>
+<p>Identified trains also vanish and reappear. <a href="#fig-flicker" class="quarto-xref">Figure&nbsp;4</a> counts, per 1,000 train-polls, a train absent for one fresh poll and back the next, for two, and for three or more: on the tube 13.1 episodes per 1,000 train-polls, of which 65.5% last three polls or longer; on the Overground 1.28, mostly one poll; on the Waterloo &amp; City line, whose two-stop shuttle is listed and delisted at each end, 195.8. At the recorder’s cadence a one-poll absence is already a 46 to 92 s gap, longer than the display’s 60 s retention; the map, polling at 10 s, sees the one- and two-poll absences of 10 to 20 s that the recorder cannot, and those are what the retention rule of <a href="#sec-display" class="quarto-xref">Section&nbsp;6</a> answers. The long absences here are trains the feed has lost for minutes, and the right response to those is to let them go, which the same rule does after 60 s.</p>
+<div id="fig-flicker" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-flicker-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-v-4-flicker.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-flicker-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Flicker: an identified train absent for <span class="math inline">\(k\)</span> fresh polls and then present again, per 1,000 train-polls, by line (2026-09-28 to 2026-10-01).
+</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="sec-geometry" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Baked geometry</h1>
+<p>Positions are fractions along track segments, so the segments are the second input. They are baked offline and committed; the running system never asks TfL or OpenStreetMap for geometry.</p>
+<section id="sec-geometry-branches" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-geometry-branches"><span class="header-section-number">3.1</span> Branches, stops and segments</h2>
+<p>For each line and direction, TfL’s Route Sequence endpoint gives one or more stop-point sequences (branches) and line strings. A branch file holds, per direction, the ordered stops with coordinates, one track segment per consecutive stop pair, and, where available, a scheduled run time per segment. The stops are authoritative and never changed by later bakers; the segments are.</p>
+<p>The first baker cuts each segment from TfL’s own line strings, projecting the two stops onto every line string and keeping the sub-polyline between them where both snap within 250 m and the path is no more than four times the straight-line distance; failing that, a straight chord. River routes are cut along the OpenStreetMap Thames centreline instead, with curved pier approaches, because TfL’s river geometry is pier-to-pier chords across the city.</p>
+<p>The second baker replaces the segments of the 19 rail lines with real track from OpenStreetMap’s route relations <span class="citation" data-cites="osm">(<a href="#ref-osm" role="doc-biblioref">OpenStreetMap contributors, 2026</a>)</span>: ways are stitched into chains that break at junctions, and each stop pair is cut from the chain that fits, then from a shortest path over the way graph if no single chain spans the pair, and only then kept as the TfL segment. The chain is chosen by snap distance alone, so where a line runs in twin bores or on double track (8 to 31 m apart, measured over the OpenStreetMap ways of the 19 lines) inbound and outbound trains share whichever bore snapped better and can hop between bores at a station, which is visible at street zoom. A revision under review at the time of writing gives each direction its own track: a chain whose OpenStreetMap tags say trains run the other way is never used while an alternative exists, among untagged parallel tracks the left-most in the direction of travel is taken, as UK trains keep left, and consecutive segments prefer to stay on one track.</p>
+<p>The inventory is 25 line files, 1,313 direction-segments and 1,834 km of direction-track (<a href="#tbl-geometry" class="quarto-xref">Table&nbsp;3</a>, computed from the committed files at application commit <code>1688e19</code>).</p>
+<div id="tbl-geometry" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-geometry-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: What the trains are drawn on, from the committed branch files. Branches are the outbound stop sequences per line; a branch file holds each in both directions.
+</figcaption>
+<div aria-describedby="tbl-geometry-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>Lines</th>
+<th>Geometry source</th>
+<th>Physical branches</th>
+<th>Route km (one direction)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tube</td>
+<td>11</td>
+<td>OpenStreetMap subway relations</td>
+<td>46</td>
+<td>477</td>
+</tr>
+<tr class="even">
+<td>DLR</td>
+<td>1</td>
+<td>OpenStreetMap light-rail relation</td>
+<td>13</td>
+<td>36</td>
+</tr>
+<tr class="odd">
+<td>Elizabeth line</td>
+<td>1</td>
+<td>OpenStreetMap train relation</td>
+<td>12</td>
+<td>136</td>
+</tr>
+<tr class="even">
+<td>Overground</td>
+<td>6</td>
+<td>OpenStreetMap train relations</td>
+<td>17</td>
+<td>170</td>
+</tr>
+<tr class="odd">
+<td>Trams</td>
+<td>1</td>
+<td>TfL line strings (16 of 54 segments are chords)</td>
+<td>6</td>
+<td>25</td>
+</tr>
+<tr class="even">
+<td>Cable car</td>
+<td>1</td>
+<td>TfL line string</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>River services</td>
+<td>4</td>
+<td>OpenStreetMap Thames centreline with pier approaches (ferry: TfL)</td>
+<td>30</td>
+<td>83</td>
+</tr>
+<tr class="even">
+<td>National Rail</td>
+<td>graph</td>
+<td>OpenStreetMap main-line ways, station-to-station</td>
+<td>579 segments</td>
+<td>1,373</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="sec-geometry-runtimes" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-geometry-runtimes"><span class="header-section-number">3.2</span> Run times</h2>
+<p>The third baker walks TfL’s Timetable endpoint from each branch’s first stop and records, per ordered stop pair, the median of the scheduled intervals between consecutive stops. The result is a run time in seconds per segment, present for 76.5% of segments (1,004 of 1,313). The gap is structural: the Timetable endpoint does not answer for the Elizabeth line and the six Overground lines under their current identifiers, so none of their segments has a scheduled time and every train on those lines is placed by the geometric estimate of <a href="#sec-runtime" class="quarto-xref">Section&nbsp;5.3</a>; the other 309 fallback segments are those lines plus three elsewhere. A baker that derives run times from the recorded Arrivals sample itself, as the median difference between a train’s countdowns to two consecutive stops within one poll, exists and awaits review; the second document’s calibration found its values within a minute of the timetable’s where both exist.</p>
+</section>
+<section id="sec-geometry-nr" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-geometry-nr"><span class="header-section-number">3.3</span> The National Rail graph</h2>
+<p>National Rail has no branch files. A separate baker snaps 431 stations inside the London box to the nearest OpenStreetMap main-line track node, assigns every node within 300 m of a station to that station’s zone, and runs one shortest-path search per station that may enter a foreign zone but not leave it; the cheapest node reached in each foreign zone defines a neighbour and the path to it a segment. The result is 579 undirected segments, 1,373 km, with a polyline each and no timing (commit <code>1688e19</code>). Adjacency is geometric, not timetable topology: some station pairs that a real service runs between non-stop exist only as a chain of segments, which is what the pathing of <a href="#sec-nr" class="quarto-xref">Section&nbsp;7</a> walks.</p>
+</section>
+</section>
+<section id="sec-identity" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Identity: from rows to trains</h1>
+<p>A poll is a list of rows; the map needs a list of trains. The resolution is a pure function of one poll and the previous poll’s assignments, and it runs in the browser (and, for the leaderboard, once on the server).</p>
+<section id="sec-identity-stock" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-identity-stock"><span class="header-section-number">4.1</span> Cross-line de-duplication</h2>
+<p>Lines that share stock are grouped: the four sub-surface lines form one identifier namespace, the six Overground lines another. Within a group, rows with the same <code>vehicleId</code> on different lines are one train, and the listing with the smallest countdown is kept, on the reasoning that the line whose platform the train is nearest is the line it is currently running as. The measured margin says this is usually clear and sometimes a tie: when a sub-surface train is listed on two lines, the second-smallest countdown exceeds the smallest by 630 s at the median, but by 0 s at the 10th percentile, so for about a tenth of duplicates the two listings agree on the countdown and the line is decided by the order of the rows.</p>
+</section>
+<section id="sec-identity-ladder" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="sec-identity-ladder"><span class="header-section-number">4.2</span> The key ladder</h2>
+<p>After de-duplication each row is keyed, in order of preference:</p>
+<ol type="1">
+<li><code>line:vehicleId</code>, when the identifier is present and not the placeholder <code>000</code>. This is the common case on the tube, the Overground and the Elizabeth line.</li>
+<li><code>line|currentLocation</code>, when there is no identifier but there is a location text: rows at every platform ahead of the same unidentified train carry the same location, so the text is a serviceable identity for as long as it does not change. Where the same text appears for two directions it is split by direction. On the Metropolitan line, the one line where this level carries weight (22.1% of its rows), a synthetic identity lives 2 polls at the median, because the text moves with the train (“Between A and B” becomes “Between B and C”); <a href="#sec-display" class="quarto-xref">Section&nbsp;6</a> describes the hand-over that keeps the icon continuous across the change.</li>
+<li>The DLR leading edge, when there is neither: rows are grouped by direction, destination and stop, and only the row not echoed by an earlier stop on the same chain is kept, using the baked stop order to know which stops are earlier. 54% of DLR rows are within the horizon and 42 leading edges per poll survive.</li>
+<li>A timetable key, <code>line:tt:destination:stop</code>, for rows with neither identifier nor location, kept only if the countdown is within <span class="math inline">\(H\)</span> = 480 s. Beyond that a location-less prediction is the timetable, not an observation, and is dropped rather than drawn.</li>
+</ol>
+<p>The ladder’s levels are not equally trustworthy, and the leaderboard, which turns positions into distances, credits only level 1: a synthetic identity that hands over to another would otherwise invent distance.</p>
+<p>Two details of level 1 were learned from the feed rather than designed. The placeholder <code>000</code> is what some lines’ systems write when a train has not yet been assigned a set number, most often at a terminus before departure and on the Metropolitan line generally; treating it as an identifier would merge every such train on the line into one, so it is treated as absent and the row falls to level 2. And a terminus train is listed twice at one platform, once as the arrival and once as the following departure, with the same identifier and different countdowns; the row with the smaller countdown is the train’s current state and the other is discarded with the rest of its rows.</p>
+<p>A worked poll makes the ladder concrete, on the line where every level is exercised. A Metropolitan line body contains, among others: inbound rows for set 061 at Northwick Park (40 s), Preston Road (150 s) and Wembley Park (280 s), all with the text “Between Harrow-on-the-Hill and Northwick Park”; rows with <code>000</code> at Aldgate reading “At Aldgate Platform 3” with countdowns of 0, 420 and 900 s; and a row at Finchley Road with <code>000</code> and “Approaching Finchley Road”. Set 061 is one train, keyed by its identifier, placed by the Northwick Park row, and its two further rows are kept only for the hand-off. The three <code>000</code> rows at Aldgate share a text and would, taken literally, become one synthetic train at the platform; they are in fact the three next departures the system has not numbered yet, and the ladder’s inability to tell them apart is the price of a placeholder identifier: at a terminus the feed, not the inference, decides what is drawn. The Finchley Road row keys a synthetic train “Approaching Finchley Road”, which the display will hand over to the train born as “At Finchley Road” in a later poll if the two positions are within 300 m, as they are.</p>
+</section>
+<section id="sec-identity-horizon" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-identity-horizon"><span class="header-section-number">4.3</span> The horizon</h2>
+<p><span class="math inline">\(H\)</span> matters most on the Overground and Elizabeth lines, where the feed is timetable-reaching: a train is listed at platforms it will reach in an hour, with an identifier, before it has left its origin. Those rows carry an identifier, so the ladder would key them, and the horizon is therefore also applied to identified trains that have no location text: a train whose nearest platform is more than <span class="math inline">\(H\)</span> ahead and that says nothing about where it is, is not drawn. On the sample 61.5% of Elizabeth and 69.7% of Overground train-observations are beyond the horizon at their nearest platform with no location, and are not drawn; what is left is the trains actually between stations. Whether 480 s is the right value cannot be decided from the feed alone: a shorter horizon would hide a train that has in fact departed, a longer one would draw a train still in the depot, and only a position source could tell the two apart.</p>
+</section>
+<section id="sec-identity-nearest" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="sec-identity-nearest"><span class="header-section-number">4.4</span> One train, one stop</h2>
+<p>A keyed train still has one row per platform ahead. The row with the smallest countdown is the train’s next stop, and it is the only row used for positioning; the others are kept per stop for the hand-off of <a href="#sec-handoff" class="quarto-xref">Section&nbsp;5.5</a>.</p>
+</section>
+</section>
+<section id="sec-position" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Position on the branch</h1>
+<section id="sec-position-branch" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="sec-position-branch"><span class="header-section-number">5.1</span> Choosing the branch</h2>
+<p>The next stop’s identifier locates the train on every branch, in the given direction, that contains that stop. Where there is more than one (every line with a junction), the choice is: the branch the train was on at the previous poll, if it is still a candidate, so that prediction jitter never teleports a train between branches; otherwise a branch whose last stop matches the train’s destination; otherwise a branch where the stop is mid-sequence rather than at index zero, because a train “approaching” a terminus’s first stop is usually on the branch where that stop is en route.</p>
+<p>Camden Town is the hard case: the Charing Cross and Bank branches converge there from the south and the Edgware and High Barnet branches leave to the north, and the branch files split at the junction, so a northbound train whose next stop is Camden Town is a candidate on four branches, two of which have Camden Town as their first stop. A train that was already on a branch keeps it. A new train is matched by its destination to a northern branch, on which Camden Town is the first stop and the dwelling arm applies until the hand-off; a new train whose destination matches no branch end, such as a Bank-branch train terminating short, falls to the mid-branch rule and the first candidate. The possible errors are confined to the first poll a train is seen at a junction, and hysteresis then keeps whatever was chosen, right or wrong, until the next stop settles it; the second document’s leaderboard, which runs the same code, is the consumer most exposed to this.</p>
+</section>
+<section id="sec-ratio" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="sec-ratio"><span class="header-section-number">5.2</span> The ratio model</h2>
+<p>With a branch and a next stop at index <span class="math inline">\(i\)</span>, the train is on the segment from stop <span class="math inline">\(i-1\)</span> to stop <span class="math inline">\(i\)</span>. Given the countdown <span class="math inline">\(t\)</span> and a run time <span class="math inline">\(T\)</span> for that segment,</p>
+<p><span id="eq-ratio"><span class="math display">\[ f = 1 - \min\!\left(1, \frac{t}{T}\right)  \tag{1}\]</span></span></p>
+<p>and the train is drawn at the point a fraction <span class="math inline">\(f\)</span> along the segment’s arc length, facing along it. The model assumes uniform speed over the segment and that the countdown is the time to the platform; both are false in detail and good enough in sum, for two reasons. The countdown is re-read every poll, so an error in <span class="math inline">\(T\)</span> is a transient error in position that corrects as <span class="math inline">\(t\)</span> falls to zero at the platform, and the display never lets <span class="math inline">\(f\)</span> decrease, so the correction is always a catch-up, never a retreat.</p>
+<div id="fig-ratio" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-ratio-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-t-0-ratio.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ratio-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: The ratio model and its arms. A train is placed at <span class="math inline">\(f = 1 - t/T\)</span> along the segment into its next stop; the “Approaching” arm clamps <span class="math inline">\(f\)</span> to at least 0.85, the at-platform arm sets <span class="math inline">\(f = 1\)</span>, and a countdown that exceeds the run time after a known departure stretches <span class="math inline">\(T\)</span> rather than pinning the train at the stop it left.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="sec-runtime" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="sec-runtime"><span class="header-section-number">5.3</span> The run time</h2>
+<p><span class="math inline">\(T\)</span> is the one quantity the model has to assume. Where the segment has a scheduled run time <span class="math inline">\(s \ge 20\)</span> s, <span class="math inline">\(T = \min(300, s + 30)\)</span>. The 30 s is a dwell allowance: TfL’s timetable intervals are whole minutes and exclude the dwell at the departure platform, so the raw scheduled figure systematically undershoots the countdown a train actually shows when it leaves. The allowance was set from a probe recorded in the code (a 60 s scheduled interval against 74 to 89 s observed), and the sample is consistent with it: at the first fresh poll after a tube train’s location says it has left a stop, its countdown to the next is 60 s at the median across the tube (170 s at the 90th percentile, 287,368 departures), 50 s on the Northern line, 50 s on the Victoria and 65 s on the Central, against scheduled intervals of one to three minutes. The recorder sees the first poll <em>after</em> the departure, up to 46 s late, so the countdown at the moment of departure is larger than measured, and the allowance is if anything on the small side. A per-segment comparison of these countdowns with each segment’s scheduled time is the test that would settle the value, and it is left for a later revision.</p>
+<p>Where there is no scheduled time, <span class="math inline">\(T\)</span> is the segment’s length at 12 m/s, clamped to 45 to 300 s. The speed and the clamps carry no measurement behind them; they are a prior, and at the time of writing it is the prior every Overground and Elizabeth line train is placed by (309 segments, <a href="#sec-geometry-runtimes" class="quarto-xref">Section&nbsp;3.2</a>). On those lines the countdown is itself a timetable clock (<a href="#sec-feed-dynamics" class="quarto-xref">Section&nbsp;2.5</a>) and there is no location text, so their trains are drawn on time along a guessed speed: a delayed Overground train is drawn where it should be, not where it is, until its countdown is re-issued.</p>
+<p>The DLR is a special case of the countdown rather than of the model. Its countdowns are issued at a fixed spacing (the next trains on a platform are listed at 149, 449, 749 s and so on) and then step down like the tube’s, so they are a schedule re-issued at intervals, not a measurement. The ratio model still places the leading edge plausibly, because the schedule is kept, but a DLR train that is held at a signal is drawn moving until the countdown is re-issued, and the sample shows DLR trains arriving 40 s later than their countdown said at the median (<a href="#sec-accuracy" class="quarto-xref">Section&nbsp;5.6</a>).</p>
+<p>Two guards act on <span class="math inline">\(T\)</span>. If the location text proves the train has left its previous stop (“Between”, “Left”) and the countdown plus a 20 s margin exceeds <span class="math inline">\(T\)</span>, then <span class="math inline">\(T\)</span> is wrong rather than the countdown, and it is stretched to <span class="math inline">\(t + 20\)</span> s so that the ratio stays just past the platform and keeps advancing. And a countdown of <span class="math inline">\(t_{plat}\)</span> = 15 s or less places the train at the platform, <span class="math inline">\(f = 1\)</span>, whatever <span class="math inline">\(T\)</span> is.</p>
+</section>
+<section id="sec-arms" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="sec-arms"><span class="header-section-number">5.4</span> The location arms</h2>
+<p>The location text is used in three ways, each for the train’s own next stop only. “At X”, where X is the next stop, places the train at the platform. “Approaching X” clamps <span class="math inline">\(f\)</span> to at least 0.85. “Between” or “Left” are the departure proof of the stretch above. The restriction to the own next stop was learned from a failure: a train listed at Liverpool Street with the text “At Aldgate Platform” is a terminus dwell of a different listing, and snapping on it made trains jump.</p>
+<p>The clamp was learned from another. On the Metropolitan line the countdown freezes 45 to 60 s stale while the train is already at or near the platform, and the text, which comes from the signalling system directly, is ahead of it. The sample quantifies the lag the clamp absorbs, in both directions. When a tube train’s text says it is approaching its own next stop, its countdown is 15 s at the median and 45 s at the 90th percentile (84,017 rows), 20 s on the Metropolitan, where the clamp implies about 15% of a segment, or 20 to 40 s at line speed. Conversely, among rows whose countdown is at or below 15 s, only 6.3% say “At” the stop in question; 41.3% still say “Between” and 18.9% say “At” some other stop. The text lags the countdown as often as it leads it, which is why the at-platform arm is driven by the countdown and the text is only allowed to pull a train forward, never back.</p>
+<p>What the arms do not read is measured too, and here the sample contradicts the code. The departure proof recognises “Between” and “Left”, but the Northern line writes “Departed X”, the Jubilee “Leaving X” and the Bakerloo “North of X” or “South of X”: 6.2% of all tube departures in the sample carried a text that proved the departure and was not recognised, 21.4% on the Northern line, 12.6% on the Jubilee and 8% on the Victoria. The cost arises when such a train’s countdown exceeds the segment’s run time: it is pinned at the platform it has left until the countdown falls below the run time. The fix is not quite three words, because “North of” and “South of” prove a departure only given the direction of travel and the Victoria line also writes “Departing X”; it needs a per-line vocabulary, and it is listed in <a href="#sec-limits" class="quarto-xref">Section&nbsp;9</a>. The remaining “other” class in <a href="#fig-vocab" class="quarto-xref">Figure&nbsp;2</a> is small (1.7% on the Northern line) and is mostly named places that are not stops: Around Mill Hill East (23997); Finchley Central Platform 3 (20971); Kennington Loop (4967); Arriving/departing at/from Archway Sidings (4052); Around Kings Cross NB - Point 6 (3439).</p>
+</section>
+<section id="sec-handoff" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="sec-handoff"><span class="header-section-number">5.5</span> The hand-off at the platform</h2>
+<p>When a train is at its next stop, by countdown or by text, and that stop is not the end of the branch, the feed often keeps a stale row at that stop for a poll or two after the train has gone, which would pin the icon there. So once at the platform the train is positioned by the freshest row at the successor stop instead, if one exists for the same train, and it starts along the next segment as that countdown falls. The stale row is visible in the sample as the “At own stop” rows whose countdown is still large: 7.3% of them show 300 s or more, and on the Hammersmith &amp; City line 53.7% do, most plausibly terminus departures listed as already at the platform (the stations involved have not yet been checked). <a href="#fig-consistency" class="quarto-xref">Figure&nbsp;6</a> gives the countdown distributions behind these three arms.</p>
+<div id="fig-consistency" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-consistency-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-v-6-consistency.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-consistency-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: What the countdown says when the text says where the train is, over the tube: rows reading “At” the train’s own next stop, rows reading “Approaching” it, and the first poll after a text proves the train has left its previous stop. The red bars are the clipped tails: “At” rows with a countdown of 300 s or more are terminus departures listed as already at the platform; departures with 600 s or more are long run times the stretch guard exists for. Sample 2026-09-28 to 2026-10-01.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="sec-accuracy" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="sec-accuracy"><span class="header-section-number">5.6</span> What the countdown can promise</h2>
+<p>The ratio model’s position error is the countdown’s error scaled by the segment. The sample measures the countdown’s error directly: for each train and stop, the countdown read at a horizon of <span class="math inline">\(h\)</span> seconds is compared with the time the train was then observed to arrive, where arrival is the first poll whose text says “At <that stop="">” or, failing that, the last poll whose countdown was 45 s or less; tracks with neither are censored and counted. <a href="#fig-accuracy" class="quarto-xref">Figure&nbsp;7</a> gives the error by horizon bucket.</that></p>
+<div id="fig-accuracy" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-accuracy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-v-2-accuracy.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-accuracy-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Countdown error against the observed arrival, by the horizon at which the countdown was read, per mode. Bands span the 10th to 90th percentile. Arrival is observed at the recorder’s granularity; sample 2026-09-28 to 2026-10-01.
+</figcaption>
+</figure>
+</div>
+<p>On the tube a countdown read within 120 s of arrival is -30 to 60 s wrong at the 10th to 90th percentile (0 s median, 266,930 readings); read within 300 s, -30 to 110 s, with the train late more often than early. At 12 m/s those errors are a few hundred metres within a segment and 0.7 to 1.3 km at the 90th percentile five minutes out, which is the resolution the map should be read at; the positive skew means a train drawn by the ratio model is, when wrong, usually drawn ahead of where it is. DLR trains arrive 40 s later than their fixed-spacing countdown said, at the median. The Overground and Elizabeth lines show an error of zero at the median at every horizon, which is circular rather than reassuring: their countdown is a clock, their arrival is detected from that same clock, and neither says where the train is. The arrival rule on the tube is mostly the countdown too: only 2.2% of tube arrivals were pinned by an “At” text, and 50.2% of tracks ended without an observed arrival (the train was dropped, or the sample ended), so the figure describes the half of the tracks that completed.</p>
+</section>
+</section>
+<section id="sec-display" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Display</h1>
+<p>Inference runs once per poll, every 10 s. The display runs every animation frame, with the map’s rebuild gated to about 15 a second, and has to make a train move plausibly between two inferred positions that may disagree by the whole of the feed’s noise. The interpolator holds, per train, the segment it is on, the fraction it is displayed at, the fraction the latest poll asked for, and a working countdown of its own.</p>
+<section id="sec-display-blend" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="sec-display-blend"><span class="header-section-number">6.1</span> Blending the countdown</h2>
+<p>The polled position is taken at face value: the fraction the inference computed from the raw countdown is the new target. What is blended is the working countdown used between polls: the new countdown and the previous one advanced by the elapsed time, half and half, as long as the train is on the same segment, so that a 30 s step in the feed (<a href="#fig-residual" class="quarto-xref">Figure&nbsp;3</a>) becomes a 15 s step in the rate at which the train is dead-reckoned.</p>
+</section>
+<section id="sec-display-forward" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="sec-display-forward"><span class="header-section-number">6.2</span> Forward only</h2>
+<p>Within a segment the displayed fraction never decreases. If a poll implies a smaller fraction than the one shown, the target is simply not moved; if it implies a larger one, the display eases toward it. A regression in the feed, 9.7% of tube pairs, therefore produces at worst a pause, never a train running backwards along its segment. When the train advances to a new segment, the displayed point is carried onto it by projection (the old segment’s end is the new one’s start) and the display continues from there, so a segment change is not a jump. The guarantee has three edges: a retarget of more than 1.5 km is treated as a re-identification and snapped; a segment change whose new next stop lies behind the carried point moves the train back; and a hand-over between synthetic identities starts from the successor’s position.</p>
+</section>
+<section id="sec-display-dr" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="sec-display-dr"><span class="header-section-number">6.3</span> Dead reckoning between polls</h2>
+<p>Every frame, the countdown is extrapolated by the time since the poll, the fraction it implies is computed, and the target becomes the larger of the polled and the extrapolated fraction. The display then eases toward the target with <span class="math inline">\(1 - e^{-\Delta t/\tau}\)</span> per frame, <span class="math inline">\(\tau\)</span> = 4 s, so a train closes about two thirds of the gap to its target every four seconds and arrives at the platform as the countdown reaches zero rather than at the next poll. Dead reckoning is capped at the current segment’s end: a train is never advanced into a segment the feed has not put it on.</p>
+</section>
+<section id="sec-display-absence" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="sec-display-absence"><span class="header-section-number">6.4</span> Absence, retention and succession</h2>
+<p>An identified train missing from a poll is not removed. It is coasted, with the dead reckoning above, for 60 s, and dropped only then; at the map’s cadence that covers absences of a few polls. A train whose next stop is its destination and whose fraction is at least 0.97 is released after 12 s instead, because short workings end mid-line and the icon should not linger. A train in its last 10 s of retention fades. A synthetic identity gets no retention: when its key disappears, because its location text changed or, on the DLR, because the leading edge moved to the next platform, its display state is handed to an identity born in the same poll on the same line and direction whose position is within 300 m, and if there is none it is removed at once. On the DLR, where every train is re-keyed at every platform, the hand-over is the only thing that makes a train continuous.</p>
+</section>
+<section id="sec-display-worked" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="sec-display-worked"><span class="header-section-number">6.5</span> A poll, frame by frame</h2>
+<p>Take a Victoria line train that the 10:00:00 poll puts 90 s from Green Park on a segment whose run time is 120 s: <span class="math inline">\(f = 0.25\)</span>. The display eases toward 0.25 and, each frame, also computes where the train would be if the countdown had simply run down, so by 10:00:08 the dead-reckoned target is <span class="math inline">\(1 - 82/120 = 0.32\)</span> and the icon is a little behind it, closing the gap at the easing rate. The 10:00:10 poll says 85 s: the polled target is <span class="math inline">\(f = 0.29\)</span>, and the working countdown becomes the blend of 85 s with the previous 90 s advanced by 10 s, 82.5 s, so dead reckoning continues almost exactly where it was and the 5 s of feed noise is invisible. The 10:00:20 poll says 95 s, a regression: the polled target, <span class="math inline">\(f = 0.21\)</span>, is behind the displayed fraction, so the target is left where it was and the icon pauses for a few seconds until the feed catches up with the display. The 10:01:30 poll says 12 s: the train is placed at the platform, <span class="math inline">\(f = 1\)</span>, and because a successor row exists at Oxford Circus it is re-based on that countdown and starts along the next segment as it falls. Had the 10:01:30 poll not listed the train at all, nothing would change on screen for 60 s; the train would continue to dead-reckon along its segment and stop at its end.</p>
+<p>The point of walking through this is that every rule of the section is a response to one thing the feed did in that minute: the oscillation, the regression, the stale platform row, the dropped poll. None of them is a smoothing choice made for appearance.</p>
+</section>
+<section id="sec-display-render" class="level2" data-number="6.6">
+<h2 data-number="6.6" class="anchored" data-anchor-id="sec-display-render"><span class="header-section-number">6.6</span> Rendering</h2>
+<p>Trains are one symbol layer whose data is rebuilt at most about 15 times a second (about 3 under the battery saver), with per-line icons rotated to the segment bearing and an opacity that fades an absent train out. A train that is clicked opens a card that follows it; the card reads the same interpolated state, so the position in the card and on the map never disagree. The rebuild budget this and the bus layers are held to, and why it is capped rather than run every frame, is the subject of the second document.</p>
+</section>
+</section>
+<section id="sec-nr" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> National Rail</h1>
+<p>National Rail trains come from a different source and are placed by a different rule. The Darwin departure boards <span class="citation" data-cites="darwin">(<a href="#ref-darwin" role="doc-biblioref">Rail Delivery Group, 2026</a>)</span> give, per station, the services due with their calling points and, for each calling point, the scheduled time and, once known, the estimated and the actual time. There is no countdown and no location text.</p>
+<section id="sec-nr-boards" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="sec-nr-boards"><span class="header-section-number">7.1</span> Boards into timelines</h2>
+<p>A departure board is a station’s view: the services due to leave it in the next hour or two, each with its origin, destination, platform, operator, scheduled and estimated departure, and the full list of calling points ahead with a scheduled time and, once the train is running, an estimated or actual time for each. The map polls 17 hub stations, chosen so that their boards between them list most of the services that cross the London box: the termini, plus junction stations whose calling points cover the orbital and cross-London routes. One board is fetched every 4 s in rotation, so each is refreshed about every 70 s, through the same backend cache and budget that the second document describes.</p>
+<p>Every service seen on any board is kept as one timeline keyed by its run identifier, which is stable for the day. A timeline is the ordered calling points with the best known time at each: the actual time where the board reports one, else the estimate, else the schedule. A service seen again from another board replaces its timeline only if the new sighting carries more calling points; otherwise the first sighting stands, times included. A delay that develops after a service was first seen is therefore not reflected until a fuller sighting replaces the timeline, which is the main source of error in this layer. Consecutive calling points that resolve to the same in-box station, which the gateway remapping below can produce, are collapsed so that no zero-length leg exists.</p>
+</section>
+<section id="sec-nr-clock" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="sec-nr-clock"><span class="header-section-number">7.2</span> Position by the clock</h2>
+<p>A service is drawn when the clock lies between the times of two consecutive calling points <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> in its timeline:</p>
+<p><span id="eq-nr"><span class="math display">\[ f = \frac{\text{now} - t_A}{t_B - t_A}  \tag{2}\]</span></span></p>
+<p>along the shortest path from <span class="math inline">\(A\)</span> to <span class="math inline">\(B\)</span> on the station graph of <a href="#sec-geometry-nr" class="quarto-xref">Section&nbsp;3.3</a>, with the search capped at 60 km, its results cached (300 paths) and recomputed only when the timeline’s calling points change. A service whose last calling point is more than two minutes in the past is pruned; one whose first calling point is still ahead is not yet drawn. There is no countdown, no location text and no display smoothing: the position is a pure function of the clock and the timeline, recomputed every frame.</p>
+</section>
+<section id="sec-nr-gateways" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="sec-nr-gateways"><span class="header-section-number">7.3</span> Gateways</h2>
+<p>One correction is needed for London in particular. A fast train leaves Euston and calls first at Milton Keynes, or leaves Paddington and calls first at Reading: both calling points lie outside the station graph, so the timeline has no in-box leg and the service would never be drawn while it is physically crossing twenty kilometres of visible track. For 28 such gateways the first out-of-box calling point is remapped to the outermost in-box station on that route (Kings Langley on the West Coast main line, Langley on the Great Western, Potters Bar, Radlett, Shenfield, Cheshunt, West Horndon, Denham Golf Club, West Byfleet, Clandon, Sevenoaks and Merstham on theirs), and the remapped point keeps the far calling point’s time. The service is therefore drawn out to the edge of the map, but slowly: it reaches Kings Langley at the time it is due at Milton Keynes. This is a visibility fix, not a position estimate, and the document says so because a reader will see those trains crawl. The remap is a table, not a rule, and a new fast service pattern needs a new row.</p>
+</section>
+<section id="sec-nr-limits" class="level2" data-number="7.4">
+<h2 data-number="7.4" class="anchored" data-anchor-id="sec-nr-limits"><span class="header-section-number">7.4</span> What it cannot do</h2>
+<p>The result is coarser than the tube in three ways that the user can see. Positions are pure functions of the clock, so a train that falls late after its first sighting is drawn where the timetable says; a fuller sighting that replaces the timeline moves the train in a step; and the graph is geometric, so a non-stop service is drawn along the chain of station-to-station segments, which can differ from the line it actually takes through a junction. These are stated here rather than fixed because fixing them properly needs a position source: Network Rail’s train-describer feed exists and is open, and adopting it is a different system from the one described here.</p>
+</section>
+</section>
+<section id="sec-validation" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Validation</h1>
+<p>There is no ground truth. TfL does not publish train positions, and the only public sources that do (the TD berth feed through Network Rail’s open data, for National Rail) cover a different network. What can be measured is the feed’s consistency with itself, and whether each rule’s value sits where the measurement says it should. <a href="#tbl-validation" class="quarto-xref">Table&nbsp;4</a> lists the twelve measurements, the rule each one tests, and what the sample says.</p>
+<div id="tbl-validation" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-validation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: The twelve self-consistency measurements and what they found. Each is a script output; the per-line tables are in the data directory.
+</figcaption>
+<div aria-describedby="tbl-validation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Measurement</th>
+<th>Rule tested</th>
+<th>Result on the sample</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>update cadence, stale share, data age</td>
+<td>10 s poll, 8 s cache, blending</td>
+<td>34.5% of polls nothing new (10.24% older than seen); fresh body every 44 s median; age 11 s median</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>hourly coverage</td>
+<td>completeness of the sample</td>
+<td>76 hour-cells across 4 weekdays, 6.2 h of gaps (<a href="#fig-coverage" class="quarto-xref">Figure&nbsp;1</a>)</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>identifier missing or <code>000</code>, per line</td>
+<td>the location fallback</td>
+<td>tube 1.7% of rows, Metropolitan 25%, DLR 100%; justified, load-bearing on the Metropolitan only</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>location vocabulary by prefix</td>
+<td>the three arms, the departure proof, the sidings rule</td>
+<td>text empty on every non-tube mode; departure proof misses 6.2% of tube departures (contradicted)</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>countdown residual per mode</td>
+<td>forward-only display, blending</td>
+<td>tube -35 to 30 s (p10 to p90), 9.7% regress, steps of 30 s; Overground and Elizabeth 98.1% exactly zero</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>countdown error vs observed arrival by horizon</td>
+<td>the ratio model’s resolution</td>
+<td>tube within 120 s: -30 to 60 s; within 300 s: -30 to 110 s; half of tracks censored (undecided)</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>flicker per 1,000 train-polls</td>
+<td>60 s retention, succession</td>
+<td>tube 13.1 per 1,000, 65.5% of them three polls or longer; the need is shown, the value is not decidable at this cadence</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>cross-line duplicate rate and margin</td>
+<td>stock-group de-duplication</td>
+<td>sub-surface 24.12% of listings, all through Hammersmith &amp; City; margin 630 s median (justified)</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>DLR rows per train</td>
+<td>leading-edge rule</td>
+<td>3.32 rows per train; without the rule about three dots per train (justified)</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>timetable-horizon share, first-appearance horizon</td>
+<td><span class="math inline">\(H\)</span> = 480 s</td>
+<td>Elizabeth 61.5% and Overground 69.7% of observations beyond <span class="math inline">\(H\)</span> without location; the need is shown, the value undecided</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>countdown while “At own”, “Approaching own”, at departure</td>
+<td>at-platform, clamp, dwell allowance</td>
+<td>at <span class="math inline">\(\le\)</span> 15 s only 6.3% of texts say “At own” (countdown arm justified); approaching 15 s median (clamp value undecided); departure countdown 60 s median (allowance consistent)</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>identity stability: key kinds, key lifetime, TfL id churn</td>
+<td>synthetic identities, succession</td>
+<td>identifier keys cover at least 98.8% of rows on every tube line but the Metropolitan (22.1% location-keyed, living 2 polls)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Read as a whole, the sample justifies the need for every rule and the value of most, leaves three values undecided, and contradicts one. The undecided values are those a consistency check cannot reach: the 60 s retention (the recorder cannot resolve absences shorter than its own cadence), the 480 s horizon (only a position source can say whether a train listed 500 s out has left its depot) and the 0.85 clamp. The contradicted rule is the departure vocabulary: the lines that write “North of”, “South of”, “Departed” or “Leaving” are proved departed by the text and not recognised as such, 6.2% of tube departures. Two things the sample found were not being tested for at all: that the countdown on the tube and the DLR moves in 30 s steps, which makes the display’s blending and dead reckoning more important than a smooth countdown would, and that a tenth of polls carry a body older than one already seen, which is a property of the serving path rather than of the feed and is handed to the second document’s list of things to bound.</p>
+<p>The figures of this document are read, in validation terms, as follows. <a href="#fig-coverage" class="quarto-xref">Figure&nbsp;1</a> is the denominator: which hours the other figures speak for. <a href="#fig-vocab" class="quarto-xref">Figure&nbsp;2</a> and <a href="#tbl-modes" class="quarto-xref">Table&nbsp;2</a> establish which rules apply to which lines at all, and the empty location field on three of the four modes is the single most consequential fact for anyone reusing this design on another network. <a href="#fig-residual" class="quarto-xref">Figure&nbsp;3</a> sizes the display’s smoothing: a blend of one half over a step of 30 s halves a 30 s jump, and the easing spreads what remains over 4 s, which is why a stepped countdown produces a train that moves in surges rather than one that stands still. <a href="#fig-flicker" class="quarto-xref">Figure&nbsp;4</a> sizes the retention: the one- and two-poll absences the rule is for are the minority, and a 60 s window covers them; the three-poll-and-longer majority are not flicker but loss, and no retention value short of minutes would hold them. <a href="#fig-accuracy" class="quarto-xref">Figure&nbsp;7</a> bounds the ratio model: within a segment the countdown is right to a few tens of seconds nine times in ten, which at 12 m/s is a few hundred metres, and that is the honest resolution of a tube icon. <a href="#fig-consistency" class="quarto-xref">Figure&nbsp;6</a> and the near-platform mix are the arms’ justification: at the moment the countdown says platform, the text agrees in only 6.3% of rows and names somewhere else in most of the rest, which is why neither is trusted alone.</p>
+<p>The three biases of the recorder are quantified rather than assumed. Its effective fresh cadence is 46 s, not 30, so every per-poll rate above is per 46 s of feed time; a change that reverses within that window is unseen, so regression and flicker counts are floors. Replays and older bodies are 34.5% of polls and are excluded, which shrinks pair counts but does not bias residuals, because elapsed time is taken from the feed’s own timestamps. And arrivals are resolved to one poll, so the accuracy figure carries a floor of about half a poll of quantisation and is conditioned on the half of tube tracks that completed.</p>
+<p>What a validation against truth would need is also clear. For the tube, TfL’s internal track-circuit data, or the Trackernet feed that preceded the Unified API and reported berth occupancy; for National Rail, Network Rail’s open train-describer feed. Either would turn <a href="#fig-accuracy" class="quarto-xref">Figure&nbsp;7</a> from a consistency check into an error measurement. Until then the figures of this section are the honest statement of resolution: a tube train is where the feed’s countdown says, within the countdown’s own error of tens of seconds, scaled by the segment it is on; an Overground or Elizabeth line train is where the timetable says it should be.</p>
+</section>
+<section id="sec-limits" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Limitations</h1>
+<ul>
+<li><strong>No ground truth.</strong> Every accuracy figure is the feed against itself. The ratio model’s systematic errors (non-uniform speed over a segment, dwell at intermediate signals) are invisible to it.</li>
+<li><strong>The recorder’s cadence.</strong> 30 s against the map’s 10 s; regression and flicker counts are lower bounds, arrival times are quantised.</li>
+<li><strong>Four weekdays.</strong> No weekend, no disrupted day, no Night Tube; the first day is partial and 6.2 hours are missing, one morning and one evening peak among them (<a href="#fig-coverage" class="quarto-xref">Figure&nbsp;1</a>).</li>
+<li><strong>Unread departure vocabulary.</strong> “North of”, “South of”, “Departed” and “Leaving” are not matched by the departure regular expression, 6.2% of tube departures; trains on those lines are pinned at the platform for the polls until the countdown undercuts the run time. The sidings rule likewise misses “Depot”.</li>
+<li><strong>Stepped countdowns.</strong> Tube and DLR countdowns hold for about 30 s and then catch up; the ratio model turns each step into a pause and a catch-up on screen, softened but not removed by the easing and the blend.</li>
+<li><strong>Unmeasured priors.</strong> The 12 m/s fallback speed and its clamps.</li>
+<li><strong>Synthetic identities carry no history.</strong> A location-keyed train cannot be credited with distance and is handed over, not tracked; the leaderboard excludes it.</li>
+<li><strong>National Rail is clock-driven and frozen at first sighting.</strong> No smoothing, a later delay is unseen until a fuller sighting replaces the timeline, gateway trains crawl to the edge of the map, and the geometric graph can route a non-stop service through the wrong chain at a junction.</li>
+<li><strong>Overground and Elizabeth line trains are drawn on time.</strong> Their countdown is a clock and they carry no location text, so a delayed train is drawn where the timetable puts it.</li>
+<li><strong>The 30 s steps may be partly the recorder’s.</strong> A recording at the map’s 10 s cadence is needed to separate the feed’s own stepping from sampling.</li>
+<li><strong>The backend holds a copy of the inference.</strong> The leaderboard ranks by a hand-maintained copy of the front-end functions; they are kept in step by review, not by a build.</li>
+</ul>
+</section>
+<section id="sec-repro" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Reproduction</h1>
+<p>The recorder is a short script that fetches the map’s own arrivals route every 30 s and appends one gzip member per poll to a daily file, with the eleven fields the inference reads. The analysis is one streaming script over those files, with the identity rules ported from the inference so that the metrics exercise the rules the map runs; it writes one JSON of every distribution and one CSV per metric. A figure script draws <a href="#fig-residual" class="quarto-xref">Figure&nbsp;3</a> to <a href="#fig-consistency" class="quarto-xref">Figure&nbsp;6</a> from the JSON, a number script derives every value quoted in this text, and a renderer fills the text and runs Quarto. Re-running the four on new sample days regenerates the whole document. The baked geometry comes from the four bakers of <a href="#sec-geometry" class="quarto-xref">Section&nbsp;3</a> in the application repository.</p>
+</section>
+<section id="references" class="level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-osm" class="csl-entry" role="listitem">
+OpenStreetMap contributors, 2026. <a href="https://www.openstreetmap.org">OpenStreetMap railway route relations</a>.
+</div>
+<div id="ref-darwin" class="csl-entry" role="listitem">
+Rail Delivery Group, 2026. <a href="https://raildata.org.uk">Live departure boards web service (<span>Darwin</span>) via the rail data marketplace</a>.
+</div>
+<div id="ref-tflapi" class="csl-entry" role="listitem">
+Transport for London, 2026. <a href="https://api.tfl.gov.uk">Unified <span>API</span>: Line arrivals and status</a>.
+</div>
+</div>
+</section>
+<section id="sec-rules" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix A. The rules and where they live</h1>
+<table class="caption-top table">
+<caption>Every rule with its value. Paths are under <code>frontend/src/realtime/</code>; the backend keeps copies under <code>backend/src/shared/</code>.</caption>
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Rule</th>
+<th>Value</th>
+<th>Answers</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Horizon <span class="math inline">\(H\)</span></td>
+<td>480 s</td>
+<td>timetable-reaching predictions</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>At-platform countdown <span class="math inline">\(t_{plat}\)</span></td>
+<td>15 s</td>
+<td>place at platform, trigger hand-off</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Fallback speed, clamps</td>
+<td>12 m/s, 45 to 300 s</td>
+<td>segments without a run time</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>Dwell allowance</td>
+<td>30 s on scheduled times <span class="math inline">\(\ge\)</span> 20 s; cap 300 s</td>
+<td>timetable excludes dwell</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Departure stretch</td>
+<td><span class="math inline">\(T = t + 20\)</span> s when departed and <span class="math inline">\(t + 20 &gt; T\)</span></td>
+<td>wrong run time, not wrong countdown</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>Approaching clamp</td>
+<td><span class="math inline">\(f \ge 0.85\)</span></td>
+<td>laggy countdown (Metropolitan)</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Own-next-stop guard</td>
+<td>arms fire only for the train’s next stop</td>
+<td>terminus dwell of another listing</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>Stock groups</td>
+<td>sub-surface four; Overground six</td>
+<td>cross-line duplicate listings</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="odd">
+<td>DLR leading edge</td>
+<td>first non-echoed row per chain</td>
+<td>no identifier, no location</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>Branch hysteresis</td>
+<td>previous branch, then destination, then mid-branch</td>
+<td>jitter across junctions</td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Placeholder identifier</td>
+<td><code>000</code> treated as absent</td>
+<td></td>
+<td><code>position-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>Countdown blend</td>
+<td>0.5 new, 0.5 previous advanced, dead reckoning only</td>
+<td>stepped countdown</td>
+<td><code>interpolator.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Easing</td>
+<td><span class="math inline">\(\tau\)</span> = 4 s</td>
+<td>continuous motion</td>
+<td><code>interpolator.ts</code></td>
+</tr>
+<tr class="even">
+<td>Snap distance</td>
+<td>1.5 km</td>
+<td>re-identification</td>
+<td><code>interpolator.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Retention</td>
+<td>60 s; 12 s at destination; none for synthetic identities</td>
+<td>short absences; short workings</td>
+<td><code>interpolator.ts</code></td>
+</tr>
+<tr class="even">
+<td>Succession</td>
+<td>positions within 300 m, same line and direction</td>
+<td>synthetic identity drift</td>
+<td><code>interpolator.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Fade</td>
+<td>last 10 s of retention</td>
+<td></td>
+<td><code>interpolator.ts</code></td>
+</tr>
+<tr class="even">
+<td>NR hubs, stagger</td>
+<td>17 stations, one per 4 s</td>
+<td>board coverage</td>
+<td><code>nr-trains.ts</code></td>
+</tr>
+<tr class="odd">
+<td>NR gateways</td>
+<td>28 remaps to 12 edge stations, time inherited</td>
+<td>first calling point outside the box</td>
+<td><code>nr-inference.ts</code></td>
+</tr>
+<tr class="even">
+<td>NR path cap, cache, grace</td>
+<td>60 km, 300 paths, 120 s</td>
+<td></td>
+<td><code>nr-inference.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Time precedence</td>
+<td>actual &gt; estimated &gt; scheduled; timeline replaced only by a fuller sighting</td>
+<td></td>
+<td><code>nr-inference.ts</code></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sec-sample" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix B. The sample</h1>
+<p>Recorder: <code>arrivals-sampler.mjs</code>, 30 s, all 25 line identifiers, against the production origin, application commit <code>1688e19</code> for the rules and the baked data, fields <code>id, lineId, vehicleId, naptanId, timeToStation, currentLocation, towards, destinationNaptanId, platformName, direction, timestamp</code>; one gzip member per poll in <code>arrivals/YYYY-MM-DD.jsonl.gz</code>. Days: 2026-09-28 to 2026-10-01, 8,736 polls of which 3,010 replays and 5 errors; 57,036,040 rows. Coverage: 2026-09-28 (9 h), 2026-09-29 (23 h), 2026-09-30 (21 h), 2026-10-01 (23 h).</p>
+<div id="tbl-sample" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-sample-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: The sample by mode.
+</figcaption>
+<div aria-describedby="tbl-sample-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Mode</th>
+<th>Lines</th>
+<th>Rows</th>
+<th>Trains per fresh poll</th>
+<th>Consecutive pairs</th>
+<th>Regress</th>
+<th>Stall</th>
+<th>Residual p10 / p50 / p90 s</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tube</td>
+<td>11</td>
+<td>16,532,877</td>
+<td>345</td>
+<td>14,563,510</td>
+<td>9.7%</td>
+<td>27.5%</td>
+<td>-35 / 0 / 30</td>
+</tr>
+<tr class="even">
+<td>DLR</td>
+<td>1</td>
+<td>1,258,072</td>
+<td>112</td>
+<td>1,191,461</td>
+<td>13.2%</td>
+<td>34.1%</td>
+<td>-35 / 0 / 35</td>
+</tr>
+<tr class="odd">
+<td>Overground</td>
+<td>6</td>
+<td>11,433,353</td>
+<td>202</td>
+<td>11,343,197</td>
+<td>0.3%</td>
+<td>1.2%</td>
+<td>0 / 0 / 0</td>
+</tr>
+<tr class="even">
+<td>Elizabeth</td>
+<td>1</td>
+<td>6,970,606</td>
+<td>91</td>
+<td>6,894,624</td>
+<td>0.4%</td>
+<td>1.2%</td>
+<td>0 / 0 / 0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Scripts: <code>scripts/analyze-arrivals.py</code> (metrics JSON and CSVs), <code>scripts/fig-arrivals.py</code> (figures), <code>scripts/build-numbers.py</code> (every number in the text), <code>render.py</code> (fill and render). Branch files and the NR graph are read from the application repository at commit <code>1688e19</code>, and the rules described are those of the same commit.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

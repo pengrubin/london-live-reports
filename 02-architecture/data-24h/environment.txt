@@ -1,0 +1,5 @@
+started 2026-09-30T21:52:25Z node v24.13.0, commit dc3ea8f, profiler: 0
+started 2026-09-30T21:53:25Z node v24.13.0, commit dc3ea8f, profiler: 0
+started 2026-09-30T21:54:25Z node v24.13.0, commit dc3ea8f, profiler: 0
+started 2026-09-30T21:55:12Z node v24.13.0, commit dc3ea8f, profiler: 0
+Apple M4

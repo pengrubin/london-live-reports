@@ -5,8 +5,8 @@ How [london.pengrubin.com](https://london.pengrubin.com) is built, written for p
 | # | Document | Read | Status |
 |---|---|---|---|
 | 1 | **Bus GPS processing**: route shapes learned from vehicle traces, on-map snapping with an along-route Kalman filter, diversion detection with an evidence-based lifecycle | [HTML](https://docs.london.pengrubin.com/bus-gps/report.html) · [PDF](https://docs.london.pengrubin.com/bus-gps/report.pdf) | v1, 29 Sep 2026 |
-| 2 | Tube position inference from arrival countdowns | | in preparation |
-| 3 | Backend architecture and running cost | | in preparation |
+| 2 | **Architecture and stream-processing load**: six stages, per-stage rates and CPU/memory/storage as formulas in named parameters, dated calibration, scaling scenarios | [HTML](https://docs.london.pengrubin.com/architecture/report.html) · [PDF](https://docs.london.pengrubin.com/architecture/report.pdf) | v1, 1 Oct 2026 |
+| 3 | **Train position inference from arrival predictions**: feed behaviour measured over four weekdays, baked geometry, identity resolution, the ratio model, display smoothing, National Rail, self-consistency validation | [HTML](https://docs.london.pengrubin.com/tube/report.html) · [PDF](https://docs.london.pengrubin.com/tube/report.pdf) | v1, 2 Oct 2026 |
 
 ## Layout
 
@@ -20,6 +20,8 @@ docs/            what GitHub Pages serves (index + rendered HTML/PDF per documen
   figures/              generated figures (PNG + SVG)
   data/                 per-day statistics, event tables, case-study trace slices
   refs.bib              references
+02-architecture/        same layout; data/ holds the calibration measurements (CSV/JSON), notes/ the inventories
+02-tube/                same layout; data/arrivals-metrics.json from the recorded Arrivals samples, notes/ the rule catalogue and findings
 ```
 
 ## Reproducing document 1
@@ -36,3 +38,11 @@ Requirements: Python 3 with matplotlib, [Quarto](https://quarto.org) 1.10+, [tec
 ## Licence
 
 Text and figures CC BY 4.0; scripts MIT. See `LICENSE`.
+
+## Reproducing document 2
+
+Requirements as above, plus `numpy` for the memory regression. The measurements in `02-architecture/data/` were taken with the scripts in `02-architecture/scripts/` (`measure_*.py`, `run-local-profile.sh`, `fit_memory.py`) against the production origin and a local replica of the backend; they need the backend's API keys and are not needed to rebuild the document. To rebuild from the recorded data: `python3 scripts/build-numbers.py`, then each `scripts/fig-*.py`, then `python3 render.py`.
+
+## Reproducing document 3
+
+Inputs: daily Arrivals sample files written by `arrivals-sampler.mjs` (one gzip member per 30 s poll, eleven fields). `python3 scripts/analyze-arrivals.py --branches <london-live-2d>/data/branches --out data <files>` builds `data/arrivals-metrics.json`; `python3 scripts/fig-arrivals.py` draws the figures; `python3 scripts/build-numbers.py` derives every number in the text; `python3 render.py` fills and renders. The four days used in v1 are the author's recording; the sampler is in the application repository's tooling.

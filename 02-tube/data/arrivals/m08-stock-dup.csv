@@ -1,0 +1,3 @@
+group,polls,vid_listings,dup,dup_pct,margin_p50,margin_p90,pairs
+sub,5309,459413,110797,24.117,630,1440,"{""circle+hammersmith-city"": 33969, ""district+hammersmith-city"": 44832, ""hammersmith-city+metropolitan"": 31348, ""district+hammersmith-city+metropolitan"": 245, ""circle+district+hammersmith-city"": 308, ""circle+hammersmith-city+metropolitan"": 54, ""circle+district+hammersmith-city+metropolitan"": 34, ""circle+district"": 6, ""district+metropolitan"": 1}"
+og,5191,1003346,19124,1.906,2040,2640,"{""mildmay+windrush"": 19124}"

@@ -1,0 +1,171 @@
+{
+  "measurement": "B: one poll of each upstream feed",
+  "measured_on": "2026-09-29",
+  "method": "same URL shapes as backend/src, Accept-Encoding gzip, urllib; wire = bytes received, decoded = after gunzip; no body, URL or key is stored",
+  "feeds": [
+    {
+      "feed": "BODS SIRI-VM (all-London bbox)",
+      "poll_interval_s": 15,
+      "cadence_note": "bods-client.ts POLL_INTERVAL_MS, unconditional",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:33:15Z",
+          "status": 200,
+          "wire_bytes": 1112268,
+          "decoded_bytes": 7260933,
+          "content_encoding": "gzip",
+          "seconds": 0.52,
+          "records": 8272,
+          "records_fresh_within_5min": 3236,
+          "decoded_bytes_per_record": 877.8
+        },
+        {
+          "at_utc": "2026-09-29T22:33:30Z",
+          "status": 200,
+          "wire_bytes": 1114028,
+          "decoded_bytes": 7262067,
+          "content_encoding": "gzip",
+          "seconds": 0.49,
+          "records": 8273,
+          "records_fresh_within_5min": 3221,
+          "decoded_bytes_per_record": 877.8
+        },
+        {
+          "at_utc": "2026-09-29T22:33:46Z",
+          "status": 200,
+          "wire_bytes": 1113296,
+          "decoded_bytes": 7262015,
+          "content_encoding": "gzip",
+          "seconds": 1.43,
+          "records": 8273,
+          "records_fresh_within_5min": 3221,
+          "decoded_bytes_per_record": 877.8
+        }
+      ]
+    },
+    {
+      "feed": "TfL /Line/{25 ids}/Arrivals",
+      "poll_interval_s": 15,
+      "cadence_note": "leaderboard.ts SAMPLE_INTERVAL_MS 15 s through an 8 s cache shared with /api/arrivals; viewers polling at 10 s can raise it to at most one per 8 s",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:34:36Z",
+          "status": 200,
+          "wire_bytes": 178970,
+          "decoded_bytes": 4113865,
+          "content_encoding": "gzip",
+          "seconds": 0.56,
+          "records": 4455,
+          "distinct_vehicle_ids": 327,
+          "distinct_lines": 21,
+          "decoded_bytes_per_record": 923.4
+        },
+        {
+          "at_utc": "2026-09-29T22:34:50Z",
+          "status": 200,
+          "wire_bytes": 179097,
+          "decoded_bytes": 4143133,
+          "content_encoding": "gzip",
+          "seconds": 0.21,
+          "records": 4487,
+          "distinct_vehicle_ids": 327,
+          "distinct_lines": 21,
+          "decoded_bytes_per_record": 923.4
+        },
+        {
+          "at_utc": "2026-09-29T22:35:05Z",
+          "status": 200,
+          "wire_bytes": 179097,
+          "decoded_bytes": 4143133,
+          "content_encoding": "gzip",
+          "seconds": 0.19,
+          "records": 4487,
+          "distinct_vehicle_ids": 327,
+          "distinct_lines": 21,
+          "decoded_bytes_per_record": 923.4
+        }
+      ]
+    },
+    {
+      "feed": "TfL /Line/{rail ids}/Status/{from}/to/{to} (detail)",
+      "poll_interval_s": null,
+      "cadence_note": "status recorder and /api/disruptions; see upstream request log for the rate",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:35:08Z",
+          "status": 200,
+          "wire_bytes": 13164,
+          "decoded_bytes": 359259,
+          "content_encoding": "gzip",
+          "seconds": 2.59,
+          "records": 20,
+          "decoded_bytes_per_record": 17963.0
+        }
+      ]
+    },
+    {
+      "feed": "TfL /Road/all/Disruption",
+      "poll_interval_s": null,
+      "cadence_note": "road-disruptions recorder and /api/road-disruptions (120 s cache)",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:35:09Z",
+          "status": 200,
+          "wire_bytes": 35236,
+          "decoded_bytes": 288112,
+          "content_encoding": "gzip",
+          "seconds": 0.63,
+          "records": 129,
+          "decoded_bytes_per_record": 2233.4
+        }
+      ]
+    },
+    {
+      "feed": "TfL /StopPoint/Mode/bus/Disruption",
+      "poll_interval_s": null,
+      "cadence_note": "/api/bus-stop-closures",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:35:09Z",
+          "status": 200,
+          "wire_bytes": 11497,
+          "decoded_bytes": 155603,
+          "content_encoding": "gzip",
+          "seconds": 0.39,
+          "records": 375,
+          "decoded_bytes_per_record": 414.9
+        }
+      ]
+    },
+    {
+      "feed": "Darwin LDBWS GetDepBoardWithDetails (WAT)",
+      "poll_interval_s": null,
+      "cadence_note": "nr-sampler.ts: one of 17 hubs per 15 s sample, 45 s cache",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:35:09Z",
+          "status": 500,
+          "wire_bytes": null,
+          "decoded_bytes": null,
+          "content_encoding": "n/a",
+          "seconds": 0.2
+        }
+      ]
+    },
+    {
+      "feed": "ADS-B airplanes.live /v2/point (30 nm)",
+      "poll_interval_s": null,
+      "cadence_note": "on demand only: /api/aircraft, 4 s cache, viewers poll at 5 s",
+      "samples": [
+        {
+          "at_utc": "2026-09-29T22:35:09Z",
+          "status": 403,
+          "wire_bytes": null,
+          "decoded_bytes": null,
+          "content_encoding": "n/a",
+          "seconds": 0.11
+        }
+      ]
+    }
+  ]
+}

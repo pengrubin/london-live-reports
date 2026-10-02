@@ -1,0 +1,18 @@
+deployment,endpoint,path,measured_utc,samples_ok,raw_bytes_median,gzip_wire_bytes_median,br_wire_bytes_median,raw_over_br,records_median,count_basis,raw_bytes_per_record,br_bytes_per_record,ttfb_ms_median,total_ms_median,x_cache,cf_cache_status,age_s_median,cache_control,method
+dubai,health,/health,2026-09-29T22:24:37Z..2026-09-29T22:26:31Z,3,856,353,349,2.45,31,keys of components,27.6,11.3,280,280,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,capabilities,/api/capabilities,2026-09-29T22:24:40Z..2026-09-29T22:26:33Z,3,539,326,319,1.69,18,keys of layers,29.9,17.7,346,347,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,buses,/api/buses,2026-09-29T22:24:42Z..2026-09-29T22:26:36Z,3,2,,,,0,array length,,,285,288,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,diversions,/api/diversions,2026-09-29T22:24:44Z..2026-09-29T22:26:38Z,3,38,,,,0,events[],,,316,321,,DYNAMIC,,"public, max-age=60","curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,coverage,/api/coverage,,0,,,,,,,,,,,,,,,no successful sample
+dubai,vessels,/api/vessels,2026-09-29T22:24:49Z..2026-09-29T22:26:42Z,3,2,,,,0,array length,,,290,291,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,aircraft,/api/aircraft,,0,,,,,,,,,,,,,,,no successful sample
+dubai,bikes (GBFS),/api/bikes,2026-09-29T22:24:53Z..2026-09-29T22:26:47Z,3,19290,5397,5707,3.38,213,array length,90.6,26.8,323,324,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,leaderboard day/bus,/api/leaderboard,2026-09-29T22:24:55Z..2026-09-29T22:26:49Z,3,75,88,68,1.1,0,top[],,,288,300,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,leaderboard day/train,/api/leaderboard,2026-09-29T22:24:57Z..2026-09-29T22:26:51Z,3,77,90,73,1.05,0,top[],,,297,298,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,leaderboard day/ship,/api/leaderboard,2026-09-29T22:25:00Z..2026-09-29T22:26:53Z,3,76,89,72,1.06,0,top[],,,294,298,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,tide-gauges,/api/tide-gauges,2026-09-29T22:25:02Z..2026-09-29T22:26:56Z,3,2,,,,0,array length,,,282,290,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,bus-routes-index,/api/bus-routes-index,2026-09-29T22:25:04Z..2026-09-29T22:26:58Z,3,2,,,,0,array length,,,262,263,,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,static manifest.json,/manifest.json,2026-09-29T22:25:06Z..2026-09-29T22:27:00Z,3,811,342,321,2.53,4,lines[],202.8,80.2,297,299,,DYNAMIC,,"public, max-age=0","curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,static branches/red.json,/branches/red.json,,0,,,,,,,,,,,,,,,no successful sample
+dubai,static lines/red.json,/lines/red.json,2026-09-29T22:25:11Z..2026-09-29T22:27:04Z,3,9438,2828,2737,3.45,2,features[],4719.0,1368.5,282,282,,DYNAMIC,,"public, max-age=0","curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+dubai,static stations/red.json,/stations/red.json,2026-09-29T22:25:13Z..2026-09-29T22:27:07Z,3,5317,941,915,5.81,34,features[],156.4,26.9,297,298,,DYNAMIC,,"public, max-age=0","curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"

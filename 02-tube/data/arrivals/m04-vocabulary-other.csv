@@ -1,0 +1,139 @@
+line,currentLocation,rows
+bakerloo,Queen's Park North Sidings,114570
+bakerloo,Harrow & Wealdstone Siding,33873
+bakerloo,North of Queen's Park,15948
+bakerloo,North of Piccadilly Circus,5708
+bakerloo,South of Paddington,3592
+bakerloo,North of Oxford Circus,2970
+bakerloo,North of Waterloo,2964
+bakerloo,South of Oxford Circus,2690
+bakerloo,South of Regents Park,2686
+bakerloo,North of Kilburn Park,2484
+bakerloo,South of Maida Vale,2100
+bakerloo,North of Maida Vale,1842
+bakerloo,North of Regents Park,1814
+bakerloo,North of Warwick Avenue,1692
+bakerloo,North of Paddington,1528
+bakerloo,Between Queen's Park and North Sidings,1326
+bakerloo,London Road Depot entrance road,1311
+bakerloo,South of Lambeth North,1276
+bakerloo,South of Embankment,1223
+bakerloo, North of Queen's Park,942
+bakerloo,Queen's Park Reversing Berth,488
+bakerloo,At Lambeth North (London Road Depot exit),169
+bakerloo,At London Road Depot,127
+bakerloo,Queen's Park Sidings,43
+bakerloo,Elephant & Castle Siding,22
+central,At White City Sidings,3038
+central,Woodford Junction,1901
+central,At Loughton Sidings,473
+central,WOO RD21,359
+central,At Liverpool Street Siding No. 2,356
+central,At Northolt Sidings,235
+central,At Woodford Sidings,199
+central,Between White City Sidings and White City,70
+central,DEB RD22,42
+central,WER RD24,18
+central,Between Loughton and Loughton Sidings,14
+central,Left Ruislip Gardens Depot,13
+central,WER RD23,10
+circle,In Hammersmith sidings (P24),783
+circle,In between Wood Lane and Latimer Road,732
+circle,On P9 crossover outside Hammersmith,391
+circle,On P10 crossover (Hammersmith),275
+circle,In Hammersmith Sidings,112
+circle,In the vicinity of Hammersmith Platform 3,104
+circle,In between Goldhawk Road and Hammersmith,100
+circle,On P22 crossover (Hammersmith),11
+district,Barking Sidings,8547
+district,Parsons Green Sidings,1852
+district,Lillie Bridge Depot,1125
+district,Upminster area,1004
+district,Dagenham East area,401
+district,Triangle Sidings,387
+district,Ealing Broadway area,366
+district,Plaistow Area,323
+district,Between Lillie Bridge Depot and Kensington (Olympi,302
+district,Kensington (Olympia) Area,181
+district,Acton Sidings,75
+district,High Street Kensington area,62
+district,Edgware Road Siding Road 26,54
+district,Neasden Depot,7
+district,In between Wood Lane and Latimer Road,5
+district,In between Goldhawk Road and Hammersmith,4
+district,In Hammersmith Sidings,4
+district,On P10 crossover (Hammersmith),1
+hammersmith-city,Barking Sidings,61959
+hammersmith-city,In between Wood Lane and Latimer Road,1249
+hammersmith-city,In between Goldhawk Road and Hammersmith,906
+hammersmith-city,On P10 crossover (Hammersmith),641
+hammersmith-city,In Hammersmith sidings (P24),455
+hammersmith-city,Neasden Depot,402
+hammersmith-city,On P9 crossover outside Hammersmith,386
+hammersmith-city,In Hammersmith Sidings,352
+hammersmith-city,Parsons Green Sidings,345
+hammersmith-city,Lillie Bridge Depot,257
+hammersmith-city,Triangle Sidings,255
+hammersmith-city,Upminster area,108
+hammersmith-city,Edgware Road Siding Road 26,108
+hammersmith-city,On P8 crossover outside Hammersmith,87
+hammersmith-city,Plaistow Area,75
+hammersmith-city,Between Lillie Bridge Depot and Kensington (Olympi,75
+hammersmith-city,Dagenham East area,70
+hammersmith-city,Kensington (Olympia) Area,29
+hammersmith-city,In the vicinity of Hammersmith Platform 3,21
+hammersmith-city,Neasden Area,11
+hammersmith-city,Uxbridge Area,4
+hammersmith-city,Uxbridge ,3
+hammersmith-city,High Street Kensington area,2
+hammersmith-city,On P22 crossover (Hammersmith),1
+metropolitan,Watford Siding,22501
+metropolitan,Rickmansworth Sidings,3810
+metropolitan,Near Chesham,2954
+metropolitan,Neasden Depot,2685
+metropolitan,Harrow on the Hill Siding,2678
+metropolitan,Arriving At Moor Park,2154
+metropolitan,Arriving At Chorleywood,1699
+metropolitan,Uxbridge Area,913
+metropolitan,Arriving At Rickmansworth,344
+metropolitan,Neasden Area,67
+metropolitan,In Hammersmith Sidings,12
+metropolitan,In between Wood Lane and Latimer Road,3
+metropolitan,Uxbridge ,3
+northern,Around Mill Hill East,23997
+northern,Finchley Central Platform 3,20971
+northern,Kennington Loop,4967
+northern,Arriving/departing at/from Archway Sidings,4052
+northern,Around Kings Cross NB - Point 6,3439
+northern,Approachihng Belsize Park,1985
+northern,"Departing East Finchley, platform 1",1907
+northern,7A/B Crossover,1019
+northern,"On P23 crossover, between Camden and Euston",731
+northern,Tooting Broadwasy Sidings,565
+northern,14A/B Crossover,506
+northern,Kennington Reversing,487
+northern,Siding at Finchley Central,486
+northern,"On P17 crossover, East Finchley",106
+northern,Golders Green Sidings,59
+northern,East Finchley Platform 2,34
+northern,8A/B Crossover,22
+northern,High Barnet Crossover,15
+piccadilly,At Wood Green Sidings,2718
+piccadilly,Hammersmith area,2429
+piccadilly,Northfields Crossover,697
+piccadilly,Rayners Lane Siding,378
+piccadilly,Uxbridge Area,238
+piccadilly,Left Wood Green Sidings,51
+piccadilly,Ruislip Depot,33
+piccadilly,South Harrow Sidings,29
+piccadilly,Approaching Rayners Siding,3
+victoria,Victoria Siding,11180
+victoria,Brixton Area,4965
+victoria,0,4424
+victoria,Departing Pimlico,3276
+victoria,Departing Stockwell,1863
+victoria,Departing Vauxhall,1825
+victoria,At Brixton Sidings,185
+victoria,Walthamstow Sidings,84
+victoria,Between Northumberland Park Depot and Seven Sisters,14
+waterloo-city,Bank Area,320

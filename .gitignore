@@ -3,5 +3,11 @@
 01-bus-gps/data/coverage.geojson
 01-bus-gps/report.qmd
 01-bus-gps/report_files/
+02-architecture/report.qmd
+02-architecture/report_files/
+02-architecture/scripts/__pycache__/
+02-tube/report.qmd
+02-tube/report_files/
+02-tube/scripts/__pycache__/
 .DS_Store
 .quarto/

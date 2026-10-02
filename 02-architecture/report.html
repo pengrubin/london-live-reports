@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Hongwei Peng">
+<meta name="dcterms.date" content="2026-10-01">
+
+<title>Architecture and Stream-Processing Load</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap-c2e55264ed47ce3b2e0326a2269f9400.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#summary" id="toc-summary" class="nav-link active" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#sec-scope" id="toc-sec-scope" class="nav-link" data-scroll-target="#sec-scope"><span class="header-section-number">1</span> Scope and how to read this document</a></li>
+  <li><a href="#sec-architecture" id="toc-sec-architecture" class="nav-link" data-scroll-target="#sec-architecture"><span class="header-section-number">2</span> Architecture overview</a>
+  <ul class="collapse">
+  <li><a href="#sec-shape" id="toc-sec-shape" class="nav-link" data-scroll-target="#sec-shape"><span class="header-section-number">2.1</span> One process, six stages</a></li>
+  <li><a href="#sec-rules" id="toc-sec-rules" class="nav-link" data-scroll-target="#sec-rules"><span class="header-section-number">2.2</span> The rules that shape the load</a></li>
+  <li><a href="#sec-where" id="toc-sec-where" class="nav-link" data-scroll-target="#sec-where"><span class="header-section-number">2.3</span> Where the computation is</a></li>
+  <li><a href="#sec-deployment" id="toc-sec-deployment" class="nav-link" data-scroll-target="#sec-deployment"><span class="header-section-number">2.4</span> Deployment shape</a></li>
+  </ul></li>
+  <li><a href="#sec-streams" id="toc-sec-streams" class="nav-link" data-scroll-target="#sec-streams"><span class="header-section-number">3</span> Input streams</a>
+  <ul class="collapse">
+  <li><a href="#sec-triggers" id="toc-sec-triggers" class="nav-link" data-scroll-target="#sec-triggers"><span class="header-section-number">3.1</span> Two kinds of trigger</a></li>
+  <li><a href="#sec-proxy" id="toc-sec-proxy" class="nav-link" data-scroll-target="#sec-proxy"><span class="header-section-number">3.2</span> The proxy path</a></li>
+  <li><a href="#sec-bytes" id="toc-sec-bytes" class="nav-link" data-scroll-target="#sec-bytes"><span class="header-section-number">3.3</span> Where the bytes are</a></li>
+  </ul></li>
+  <li><a href="#sec-stages" id="toc-sec-stages" class="nav-link" data-scroll-target="#sec-stages"><span class="header-section-number">4</span> Stage by stage</a>
+  <ul class="collapse">
+  <li><a href="#sec-ingest" id="toc-sec-ingest" class="nav-link" data-scroll-target="#sec-ingest"><span class="header-section-number">4.1</span> Ingestion and parsing</a></li>
+  <li><a href="#sec-state" id="toc-sec-state" class="nav-link" data-scroll-target="#sec-state"><span class="header-section-number">4.2</span> In-memory state and caches</a></li>
+  <li><a href="#sec-detection" id="toc-sec-detection" class="nav-link" data-scroll-target="#sec-detection"><span class="header-section-number">4.3</span> Online detection</a></li>
+  <li><a href="#sec-persist" id="toc-sec-persist" class="nav-link" data-scroll-target="#sec-persist"><span class="header-section-number">4.4</span> Persistence</a></li>
+  <li><a href="#sec-serve" id="toc-sec-serve" class="nav-link" data-scroll-target="#sec-serve"><span class="header-section-number">4.5</span> Serving and egress</a></li>
+  <li><a href="#sec-batch" id="toc-sec-batch" class="nav-link" data-scroll-target="#sec-batch"><span class="header-section-number">4.6</span> Batch jobs</a></li>
+  </ul></li>
+  <li><a href="#sec-client" id="toc-sec-client" class="nav-link" data-scroll-target="#sec-client"><span class="header-section-number">5</span> Client-side processing</a>
+  <ul class="collapse">
+  <li><a href="#sec-tab" id="toc-sec-tab" class="nav-link" data-scroll-target="#sec-tab"><span class="header-section-number">5.1</span> What a tab requests</a></li>
+  <li><a href="#sec-tab-compute" id="toc-sec-tab-compute" class="nav-link" data-scroll-target="#sec-tab-compute"><span class="header-section-number">5.2</span> What a tab computes</a></li>
+  </ul></li>
+  <li><a href="#sec-budget" id="toc-sec-budget" class="nav-link" data-scroll-target="#sec-budget"><span class="header-section-number">6</span> End-to-end budget</a>
+  <ul class="collapse">
+  <li><a href="#sec-latency" id="toc-sec-latency" class="nav-link" data-scroll-target="#sec-latency"><span class="header-section-number">6.1</span> Latency from source to screen</a></li>
+  </ul></li>
+  <li><a href="#sec-scaling" id="toc-sec-scaling" class="nav-link" data-scroll-target="#sec-scaling"><span class="header-section-number">7</span> Scaling</a>
+  <ul class="collapse">
+  <li><a href="#sec-sc-viewers" id="toc-sec-sc-viewers" class="nav-link" data-scroll-target="#sec-sc-viewers"><span class="header-section-number">7.1</span> Ten times the audience</a></li>
+  <li><a href="#sec-sc-uk" id="toc-sec-sc-uk" class="nav-link" data-scroll-target="#sec-sc-uk"><span class="header-section-number">7.2</span> A national feed</a></li>
+  <li><a href="#sec-sc-retention" id="toc-sec-sc-retention" class="nav-link" data-scroll-target="#sec-sc-retention"><span class="header-section-number">7.3</span> A year of traces on the server</a></li>
+  </ul></li>
+  <li><a href="#sec-limits" id="toc-sec-limits" class="nav-link" data-scroll-target="#sec-limits"><span class="header-section-number">8</span> Limits of the model</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#sec-reference" id="toc-sec-reference" class="nav-link" data-scroll-target="#sec-reference">Appendix A. Reference deployment measurements</a></li>
+  <li><a href="#sec-code" id="toc-sec-code" class="nav-link" data-scroll-target="#sec-code">Appendix B. Stages to code</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="report.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Architecture and Stream-Processing Load</h1>
+<p class="subtitle lead">How London Live is built, what flows through each stage, and what each stage costs to run</p>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliation</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Hongwei Peng <a href="mailto:hongwei.peng@qmul.ac.uk" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Queen Mary University of London
+          </p>
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">1 October 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>London Live (london.pengrubin.com) turns a dozen public transport feeds into one live map of London. This document describes it as a stream-processing system: the six stages every record passes through, how much data flows through each stage per second and per day, and what each stage costs in CPU, memory and storage. The body is written in terms of named parameters (records per poll, live vehicles, viewers, retention) so that it stays valid as the code and the city change; the measured values that calibrate the formulas are collected in dated reference tables and figures. Calibrated on the London deployment on 2026-09-30 (daytime) and 2026-09-29 (night), with the Dubai deployment as a second, near-empty point.</p>
+  </div>
+</div>
+
+
+</header>
+
+
+<section id="summary" class="level1 unnumbered">
+<h1 class="unnumbered">Summary</h1>
+<div id="fig-pipeline" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-pipeline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-0-pipeline.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pipeline-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: The pipeline with its measured rates. Arrows carry data per poll; boxes carry the cost of one stage. Server CPU is a function of the feeds, not of the audience.
+</figcaption>
+</figure>
+</div>
+<ul>
+<li><strong>One process, six stages.</strong> Ingest and parse; in-memory state and caches; online detection; persistence; serving; nightly batch. Everything except the nightly route learner runs in a single Node.js process.</li>
+<li><strong>The input is large, the output is small.</strong> The bus feed alone delivers 43.7 GB of XML per day, 564 records per second; after de-duplication about 101 new GPS fixes per second are kept on average over a day (146 at midday), 144 MB per day compressed on disk.</li>
+<li><strong>The whole live path costs about 3.17% of one CPU core</strong> at London scale, averaged over a weekday on the reference machine, a laptop: 476 ms per 15 s poll, between 286 ms in the small hours and 596 ms in the afternoon. About 269 ms of that is fixed by the feed, which carries almost the same bytes at 01:00 as at 13:00; the rest follows the vehicles in service and the size of the day’s leaderboard.</li>
+<li><strong>Memory is a linear function of two counts.</strong> Heap <span class="math inline">\(\approx\)</span> 146 MB + 3.48 KB per tracked vehicle + 0.326 KB per leaderboard entry (R² 0.79 over 2,595 five-minute samples); production runs at a median of 266 MB heap and 858 MB resident.</li>
+<li><strong>Viewers add serving work only.</strong> Position inference, smoothing and filtering run in the browser; every tab receives the same cached bodies, so no viewer adds ingestion, detection or upstream calls. A tab costs the origin 47.4 requests and about 2,064 KB per minute after compression, 63% of it the train-prediction body, and about 90 ms of main-thread time per 15 s for serialisation, compression and the garbage they make.</li>
+<li><strong>What would break first</strong> is not CPU. It is memory ceilings on the single process, upstream rate limits, and stale bodies served without an age limit; each has been hit once, and each is now bounded where it bit.</li>
+</ul>
+</section>
+<section id="sec-scope" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Scope and how to read this document</h1>
+<p>This is the second of three technical notes on London Live. The first describes how the bus GPS feed becomes route shapes, on-map positions and diversion events; the third will describe how train positions are inferred from arrival countdowns. This one describes the system that runs them: what components exist, what flows between them, and what each costs.</p>
+<p>The body is durable by construction. It names components by role, not by file; it states costs as formulas in a small set of parameters (<a href="#tbl-params" class="quarto-xref">Table&nbsp;1</a>); and it gives no dates. Measured values appear in the body only as the calibration of those parameters, and every one of them is traceable to a dated measurement in <a href="#sec-reference">Appendix A</a> or a figure caption. When the code or the city changes, the reference section is re-measured, the numbers are regenerated, and the body stands.</p>
+<p>Readers who want the numbers should read the Summary and <a href="#sec-budget" class="quarto-xref">Section&nbsp;6</a>. Readers who want to size a deployment of their own should read <a href="#sec-streams" class="quarto-xref">Section&nbsp;3</a> and <a href="#sec-stages" class="quarto-xref">Section&nbsp;4</a>, substitute their own parameters, and check the limits in <a href="#sec-limits" class="quarto-xref">Section&nbsp;8</a>. Readers who want to find the code should use <a href="#sec-code">Appendix B</a>.</p>
+<div id="tbl-params" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-params-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Parameters used throughout. Values are the reference deployment’s; <a href="#sec-reference">Appendix A</a> gives their measurement.
+</figcaption>
+<div aria-describedby="tbl-params-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Symbol</th>
+<th>Meaning</th>
+<th>London value (daytime)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(R_{bus}\)</span></td>
+<td>records carried by one bus-feed response</td>
+<td>8,454</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(V\)</span></td>
+<td>live vehicles after the parser’s freshness cut</td>
+<td>6,416 (day), 3,314 (night)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(T_{bus}\)</span></td>
+<td>bus poll interval</td>
+<td>15 s</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(P\)</span></td>
+<td>train predictions per fetch</td>
+<td>8,084</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(N_{routes}\)</span></td>
+<td>learned route-directions</td>
+<td>1,953</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(F\)</span></td>
+<td>new GPS fixes kept per day (daily mean 101 per second; midday 146)</td>
+<td>8,768,876</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(S\)</span></td>
+<td>vehicle states held by the detector (30-minute window)</td>
+<td>7,402 median, 10,125 p95</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(L\)</span>, <span class="math inline">\(L_{open}\)</span></td>
+<td>leaderboard entries: closed per day, and held across the three open periods</td>
+<td>22,930 per day; 195,381 to 475,489 open</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(U\)</span></td>
+<td>open browser tabs</td>
+<td>audience-dependent</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(D\)</span></td>
+<td>trace retention on the server</td>
+<td>7 days, capped at 2 GB (<span class="math inline">\(\approx\)</span> 2.8 days)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="sec-architecture" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Architecture overview</h1>
+<section id="sec-shape" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="sec-shape"><span class="header-section-number">2.1</span> One process, six stages</h2>
+<p>London Live is a stream-processing system in the sense of <span class="citation" data-cites="stonebraker2005">Stonebraker et al. (<a href="#ref-stonebraker2005" role="doc-biblioref">2005</a>)</span>: records arrive continuously, every record is handled once as it passes, the state that matters is kept in memory, and the answer to any query is whatever the state says at that instant. It is also, deliberately, a small one. One Node.js process does everything on the live path; a second process is spawned once a day for the batch stage and exits when it is done. There is no queue, no database and no worker pool between the feeds and the browser. The reason is the shape of the load: at London scale the whole live path fits in a few percent of one CPU core (<a href="#sec-budget" class="quarto-xref">Section&nbsp;6</a>), so any component added for scale would cost more to run than the work it distributed.</p>
+<p><a href="#fig-pipeline" class="quarto-xref">Figure&nbsp;1</a> shows the six stages. Every record from every feed passes through the first two; the bus feed alone passes through all of them.</p>
+<ol type="1">
+<li><strong>Ingestion and parsing</strong> (<a href="#sec-ingest" class="quarto-xref">Section&nbsp;4.1</a>). Timers fetch each upstream on its own cadence; push feeds are read as they arrive. Bodies are decoded and reduced to typed records, and the raw body is released.</li>
+<li><strong>In-memory state and caches</strong> (<a href="#sec-state" class="quarto-xref">Section&nbsp;4.2</a>). The current picture of the network: one table per vehicle kind, one state per vehicle the detector is following, one index per learned route, one bucket per leaderboard period, and a small cache per upstream response.</li>
+<li><strong>Online detection</strong> (<a href="#sec-detection" class="quarto-xref">Section&nbsp;4.3</a>). Work done on each new record while it is in hand: projecting a bus onto its learned route and testing whether it has left it, ranking vehicles by distance, placing a rail service on the network graph, resolving a disruption’s text to a place.</li>
+<li><strong>Persistence</strong> (<a href="#sec-persist" class="quarto-xref">Section&nbsp;4.4</a>). The append-only record of what the feeds said, and the small derived files the next day’s batch and the map need.</li>
+<li><strong>Serving and egress</strong> (<a href="#sec-serve" class="quarto-xref">Section&nbsp;4.5</a>). HTTP responses to browsers, built from stage 2’s state, compressed per request.</li>
+<li><strong>Batch</strong> (<a href="#sec-batch" class="quarto-xref">Section&nbsp;4.6</a>). Nightly and hourly jobs that read stage 4 and write the learned geometry and summaries that stages 2 and 3 load at the next boot or rebuild.</li>
+</ol>
+<p>The stages are not modules with interfaces between them. They are a way of reading the one process so that each piece of work can be given a cost and a scaling law, which is what this document is for. <a href="#sec-code">Appendix B</a> maps them back to files.</p>
+</section>
+<section id="sec-rules" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="sec-rules"><span class="header-section-number">2.2</span> The rules that shape the load</h2>
+<p>Nine design rules recur in the code’s comments. Six of them decide what the system costs, and they are the ones a reader sizing a similar deployment should copy.</p>
+<ul>
+<li><strong>Every viewer-triggered upstream has its own budget.</strong> Calls to each provider are counted against a per-minute ceiling, and the ceilings are separate, so a burst of interest in one layer can never starve another. The budgets are hard: when one is spent, the response is the last good body, and if there is none, an error. Timer-driven streams (the bus feed, the vessel stream, the status recorders) are bounded by their cadence instead. Upstream traffic therefore has a known maximum however many people are watching.</li>
+<li><strong>Piggyback, never double-spend.</strong> Anything the server needs for itself that a browser also asks for is fetched through the same cache with the same key. The leaderboard’s train sampling uses the same prediction body the map does; the rail sampler uses the same departure boards. The samplers add no upstream calls while a viewer is present and set the floor when none is.</li>
+<li><strong>Bound memory by entries, not by hope.</strong> Every cache and every table has a maximum entry count or a time-to-live, and the large bodies (train predictions) have a small entry cap because one entry is several megabytes. The one place this was not done, retained substrings pinning whole feed bodies, is the one place memory was lost.</li>
+<li><strong>Serve stale rather than nothing, but bound staleness where meaning decays.</strong> A vehicle position from ten minutes ago is worse than no position; a tide reading from ten minutes ago is fine. The routes whose meaning decays fastest (aircraft, disruptions, stop closures) carry a ceiling on how old a stale body may be; the others serve the last good body at any age.</li>
+<li><strong>Never throw from a poll loop or a writer.</strong> A failed poll logs and waits for the next tick; a full disk drops the batch. “Losing a batch is fine; blocking or ballooning memory is not.”</li>
+<li><strong>Pure CPU work must yield.</strong> Long builds over the whole route set are chunked and yield to the event loop so that a rebuild never delays a poll.</li>
+</ul>
+<p>The other three, secrets never leave the server, optional features are key-gated rather than absent, and geometry fails closed, shape correctness rather than cost and are described in the code.</p>
+</section>
+<section id="sec-where" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="sec-where"><span class="header-section-number">2.3</span> Where the computation is</h2>
+<p>The most consequential decision is not in the server at all. Vehicle position inference for trains, per-frame interpolation, snapping buses to routes and smoothing them, the classification and dead-reckoning of aircraft, all of it runs in the browser (<a href="#sec-client" class="quarto-xref">Section&nbsp;5</a>). The server’s outputs are the feeds’ records, de-duplicated and re-encoded compactly, with no parameter that depends on who is asking. Two consequences follow. Every open tab receives byte-identical bodies, so an edge cache in front of the origin can absorb repeated requests, and the origin’s own work is the same for one viewer as for a hundred. And the server’s cost is a function of the feeds alone: how many records they carry and how often they are polled.</p>
+<p>The single exception is the leaderboard. Ranking vehicles by distance travelled needs a position history that is continuous and the same for everyone, which a browser cannot provide, so one copy of the train inference runs server-side, every 15 s, on the cached body (<a href="#sec-detection" class="quarto-xref">Section&nbsp;4.3</a>).</p>
+</section>
+<section id="sec-deployment" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="sec-deployment"><span class="header-section-number">2.4</span> Deployment shape</h2>
+<p>The reference deployment is one small cloud instance with a persistent volume, behind a content-delivery edge, with the base-map tiles served from object storage rather than from the process. The process serves the built front-end as static files and the baked geometry (route shapes, station lists, the rail graph) from the same origin, so the browser sees one host. Runtime-written state (traces, learned routes, leaderboard days) goes to the volume through a resolver that falls back to the working directory, and if that fails too, logs and drops the write rather than throw, because a bad volume must not stop a poll. <a href="#sec-reference">Appendix A</a> gives the instance and provider used for the measurements.</p>
+</section>
+</section>
+<section id="sec-streams" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Input streams</h1>
+<p><a href="#tbl-streams" class="quarto-xref">Table&nbsp;2</a> lists every stream the London deployment reads, with its transport, cadence, trigger and measured volume. Two of them carry almost all the bytes.</p>
+<div id="tbl-streams" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-streams-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Input streams of the London deployment. “Viewer misses” means one fetch per cache expiry however many viewers are present. Bus and prediction volumes measured on 2026-09-30, the rail board, status and tide rows on 2026-09-29; the vessel stream’s byte rate is not visible to the process’s counters.
+</figcaption>
+<div aria-describedby="tbl-streams-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stream</th>
+<th>Provider and form</th>
+<th>Cadence</th>
+<th>Trigger</th>
+<th>Per poll</th>
+<th>Per day (decoded)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bus positions</td>
+<td>BODS SIRI-VM, XML over HTTPS (gzip) <span class="citation" data-cites="bods siri">(<a href="#ref-siri" role="doc-biblioref">CEN, 2015</a>; <a href="#ref-bods" role="doc-biblioref">Department for Transport, 2026</a>)</span></td>
+<td>15 s</td>
+<td>timer</td>
+<td>8,454 records, 1.14 MB wire, 7.59 MB decoded</td>
+<td>43.7 GB</td>
+</tr>
+<tr class="even">
+<td>Train arrival predictions</td>
+<td>TfL Unified API, JSON <span class="citation" data-cites="tflapi">(<a href="#ref-tflapi" role="doc-biblioref">Transport for London, 2026a</a>)</span></td>
+<td>15 s floor, 8 s cache</td>
+<td>sampler timer + viewer misses</td>
+<td>8,084 predictions, 312 KB wire, 7.4 MB decoded</td>
+<td>42.7 GB at the floor</td>
+</tr>
+<tr class="odd">
+<td>National Rail departure boards</td>
+<td>Darwin LDBWS, JSON <span class="citation" data-cites="darwin">(<a href="#ref-darwin" role="doc-biblioref">Rail Delivery Group, 2026</a>)</span></td>
+<td>one of 17 hubs per 15 s; 45 s cache</td>
+<td>sampler timer + viewer misses</td>
+<td>102 KB upstream, 14 to 20 KB served</td>
+<td>0.59 GB</td>
+</tr>
+<tr class="even">
+<td>Line status (window form)</td>
+<td>TfL Unified API, JSON</td>
+<td>120 s</td>
+<td>recorder timer</td>
+<td>21 KB wire, 641 KB decoded</td>
+<td>0.46 GB</td>
+</tr>
+<tr class="odd">
+<td>Road disruptions</td>
+<td>TfL Unified API, JSON <span class="citation" data-cites="tflroad">(<a href="#ref-tflroad" role="doc-biblioref">Transport for London, 2026b</a>)</span></td>
+<td>6 h recorder; 120 s cache</td>
+<td>timer + viewer misses</td>
+<td>34 KB wire, 271 KB decoded, 117 items</td>
+<td>0.2 GB</td>
+</tr>
+<tr class="even">
+<td>Bus stop closures</td>
+<td>TfL Unified API, JSON, plus stop-point batches</td>
+<td>600 s cache</td>
+<td>viewer misses</td>
+<td>421 stops</td>
+<td>0.04 GB</td>
+</tr>
+<tr class="odd">
+<td>Vessels</td>
+<td>AIS over WebSocket</td>
+<td>push</td>
+<td>connection</td>
+<td>109 vessels in the table</td>
+<td>not measured</td>
+</tr>
+<tr class="even">
+<td>Aircraft</td>
+<td>ADS-B aggregator, JSON</td>
+<td>10 s cache</td>
+<td>viewer misses</td>
+<td>104 aircraft</td>
+<td>small</td>
+</tr>
+<tr class="odd">
+<td>Tide gauges</td>
+<td>Environment Agency, JSON</td>
+<td>300 s cache</td>
+<td>viewer misses</td>
+<td>10 gauges</td>
+<td>small</td>
+</tr>
+<tr class="even">
+<td>Popup detail</td>
+<td>TfL stop, vehicle, crowding, lifts, bike points</td>
+<td>8 to 600 s caches</td>
+<td>viewer clicks</td>
+<td>one object</td>
+<td>audience-dependent</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<section id="sec-triggers" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-triggers"><span class="header-section-number">3.1</span> Two kinds of trigger</h2>
+<p>Streams are either <strong>timer-driven</strong> or <strong>viewer-triggered</strong>, and the distinction is what makes the load predictable.</p>
+<p>A timer-driven stream is fetched on a fixed cadence whether or not anyone is watching: bus positions every 15 s, line status every 120 s, the leaderboard’s prediction and board samples every 15 s, the road-disruption recorder every six hours. Their cost is a constant of the deployment. They exist because the system’s derived products, traces, diversion events, leaderboard distances, status history, must be continuous.</p>
+<p>A viewer-triggered stream is fetched only when a browser asks and the cached copy has expired. Its cost has a floor of zero and a ceiling of one fetch per cache lifetime, whatever the audience. Between one viewer and many the upstream call count does not change; only the origin’s serving work does.</p>
+<p>The train-prediction stream is both. The sampler sets a floor of one fetch per 15 s; a viewer polling every 10 s against an 8 s cache raises it to one per 8.8 s. On the generic proxy routes more viewers cannot raise the rate further, because a miss while a fetch is in flight joins that fetch rather than starting another. The prediction route is hand-written and lacks that guard, so several first-time viewers arriving within one 8 s window can each trigger a fetch; the budget still caps the total, and the gap is listed in <a href="#sec-limits" class="quarto-xref">Section&nbsp;8</a>.</p>
+</section>
+<section id="sec-proxy" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-proxy"><span class="header-section-number">3.2</span> The proxy path</h2>
+<p>Most viewer-triggered upstreams go through one generic route with a fixed decision order, and the order is the load model for that class (the all-lines prediction route and the rail board route are hand-written and follow the same shape without the in-flight join):</p>
+<ol type="1">
+<li>Validate the query. Bad input never reaches an upstream.</li>
+<li>Fresh cache hit: serve it. The common case; costs serialisation and compression only.</li>
+<li>Miss with a fetch already in flight for the same key: wait for it and serve its result. One upstream call serves every concurrent miss.</li>
+<li>Miss, no fetch in flight: if the key failed within the last 30 s, fall to step 6 without touching the budget; otherwise try to consume one unit of that upstream’s per-minute budget, and if the budget is spent, fall to step 6.</li>
+<li>Fetch. On success, cache and serve. On a thrown error, arm a 30 s per-key back-off and fall to step 6.</li>
+<li>Serve the stale entry if one exists and is within that route’s staleness ceiling; otherwise return 429 (budget) or 502 (upstream).</li>
+</ol>
+<p>Upstream error bodies are stripped of credentials before anything is logged or forwarded, and a non-200 upstream response is passed through with the key redacted rather than cached. Each response carries a header saying which branch served it, which is how the shares of hits, misses and stale bodies in <a href="#sec-reference">Appendix A</a> were measured.</p>
+</section>
+<section id="sec-bytes" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-bytes"><span class="header-section-number">3.3</span> Where the bytes are</h2>
+<p>By decoded volume the bus feed and the prediction feed are of a size: 43.7 GB and 42.7 GB per day. On the wire they are not: the bus feed’s XML compresses from 7.59 MB to 1.14 MB, the predictions’ JSON from 7.4 MB to 312 KB, so inbound traffic is 6.5 GB per day of buses against 1.8 GB of predictions. Everything else together is under a gigabyte a day. Inbound bytes are not what costs money in this deployment (<a href="#sec-budget" class="quarto-xref">Section&nbsp;6</a>), but decoded bytes are what the parser and the garbage collector see, and both feeds are large by that measure.</p>
+<p>The bus feed is large for a reason worth stating. A SIRI-VM datafeed response contains every vehicle activity the operators’ systems currently hold for the bounding box, and operators keep reporting a vehicle for some minutes after it stops moving. By day 6,416 of 8,454 records are fresher than five minutes; late in the evening 3,314 of 8,273 are (<a href="#fig-daynight" class="quarto-xref">Figure&nbsp;2</a>), and at 01:00 about 611 are while the feed is still 1,082 KB on the wire against 1,144 KB at the morning peak (<a href="#fig-diurnal" class="quarto-xref">Figure&nbsp;3</a>). The feed’s size is set by how many vehicles have reported recently, not by how many are in service. What the system then does with the records does follow the vehicles in service: over a full weekday the process’s CPU runs between 286 and 596 ms per poll while the feed’s bytes move by 1.1:1, so the live load is a fixed part set by the feed plus a part set by <span class="math inline">\(V\)</span> (<a href="#sec-ingest" class="quarto-xref">Section&nbsp;4.1</a>, <a href="#sec-budget" class="quarto-xref">Section&nbsp;6</a>).</p>
+<div id="fig-daynight" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-daynight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-5-day-night.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-daynight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Night as a share of day for the quantities that drive load, from the two half-hour calibration windows. The feed’s records and bytes barely move while live vehicles and served bodies halve; the two CPU figures happen to match because the evening window still had half the day’s vehicles. Measured 2026-09-29 and 2026-09-30.
+</figcaption>
+</figure>
+</div>
+<div id="fig-diurnal" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-diurnal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-6-diurnal.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-diurnal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: One weekday of the reference deployment, hourly medians. Top: live buses on the replica and train predictions on the production origin. Second: the bus feed’s bytes per poll are flat while the parse block follows the live count. Third: process CPU and heap on the replica. Bottom: what one tab downloads per minute and the age of the bus fixes it receives. Replica run 2026-09-30 21:00 UTC to 2026-10-01 22:00 UTC, 5,907 polls, with production sampled every 10 minutes.
+</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="sec-stages" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Stage by stage</h1>
+<p>Each stage is described on the same card: its function, its input and output rates, its CPU per bus poll (the 15 s period everything else is measured against), its memory and storage, and the parameter it scales with. CPU figures are main-thread milliseconds from a sampling profiler on a local replica fed by the production upstreams; the profiler roughly doubles process CPU, so proportions come from the profile and absolute totals from an unprofiled control run (<a href="#sec-reference">Appendix A</a>). <a href="#fig-cpu" class="quarto-xref">Figure&nbsp;4</a> gives every stage’s share at once.</p>
+<div id="fig-cpu" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cpu-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-1-cpu-stages.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cpu-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Main-thread CPU per 15 s bus poll by stage, from the profiled local run, without and with one synthetic viewer polling at the front-end’s intervals. Ingestion is more than half; serving appears only when a viewer is present. Measured 2026-09-30.
+</figcaption>
+</figure>
+</div>
+<section id="sec-ingest" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-ingest"><span class="header-section-number">4.1</span> Ingestion and parsing</h2>
+<p><strong>Function.</strong> Fetch each upstream on its own timer, decode the body, and turn it into typed records. The bus feed is the only one large enough to matter: one SIRI-VM XML document per poll containing every vehicle the operator systems reported in the last few minutes, whether or not it moved. The parser walks the document as a string, cutting out the eleven fields the system uses and copying each one into fresh memory before the document is released. That copy is the single most important line in the stage: the JavaScript engine’s substring returns a view onto the parent string, and a retained view keeps the whole multi-megabyte document alive. An earlier build of this system lost its memory to exactly that.</p>
+<p><strong>Input rate.</strong> <span class="math inline">\(R_{bus} / T_{bus}\)</span> records per second and one document of <span class="math inline">\(B_{bus}\)</span> bytes per poll. For London, <span class="math inline">\(R_{bus}\)</span> is about 8,454 and <span class="math inline">\(B_{bus}\)</span> is 7.59 MB decoded (1.14 MB on the wire), or 564 records and 43.7 GB per day. The train-prediction feed is the second largest: 7.4 MB of JSON per fetch, 8,084 predictions, fetched every 15 s by the leaderboard sampler and more often when viewers are watching.</p>
+<p><strong>Output rate.</strong> <span class="math inline">\(V\)</span> live vehicles per poll, after dropping records older than five minutes: 6,416 by day, 3,314 in the evening, 611 at 02:00 UTC. The document size does not follow that collapse: at 01:00 the feed still carries 1,082 KB and nearly the same 8,273 records, most of them stale. This is the stage’s central property. <strong>Its input cost is set by what the feed carries, <span class="math inline">\(R_{bus}\)</span>; only the records it keeps, <span class="math inline">\(V\)</span>, cost anything downstream.</strong></p>
+<p><strong>CPU.</strong> Per bus poll: parse and table build 32.7 ms, that is 3.9 µs per record; TLS, sockets and inflate 39.6 ms and the HTTP client 21.8 ms, both shared across all upstreams but dominated by this feed’s bytes; JSON parsing of the upstream bodies, of which the prediction body is nearly all, 16.1 ms. The parse block the process logs, which spans the scan, the table build and the hand-off of each kept record to the trace writer and the detector, splits the two costs cleanly over a day: 14.4 ms fixed plus 6.9 µs per live vehicle (<span class="math inline">\(R^2\)</span> 0.78 over 5,907 polls), 52 ms at the median and 68 ms at the 95th percentile. The scan itself is the fixed part; the per-vehicle part is the work the records go on to.</p>
+<p><span id="eq-ingest"><span class="math display">\[ \text{CPU}_{ingest} \approx c_{parse} \cdot R_{bus} + c_{bytes} \cdot B_{bus} + c_{json} \cdot B_{pred} + c_{keep} \cdot V  \tag{1}\]</span></span></p>
+<p>with <span class="math inline">\(c_{parse} \approx\)</span> 3.9 µs per record, <span class="math inline">\(c_{keep} \approx\)</span> 6.9 µs per kept vehicle and <span class="math inline">\(c_{json} \approx\)</span> 2.2 ms per MB on the reference machine.</p>
+<p><strong>Memory.</strong> One document in flight, <span class="math inline">\(B_{bus}\)</span>, plus the typed records for one poll. Nothing from this stage survives the poll except what the next stage copies.</p>
+<p><strong>Storage.</strong> None.</p>
+<p><strong>Scales with:</strong> <span class="math inline">\(R_{bus}\)</span> and <span class="math inline">\(B_{bus}\)</span> for the scan, that is with the feed’s coverage and how long operators keep reporting parked vehicles; <span class="math inline">\(V\)</span> for the hand-off; not with viewers. Doubling the poll rate doubles the whole stage.</p>
+</section>
+<section id="sec-state" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="sec-state"><span class="header-section-number">4.2</span> In-memory state and caches</h2>
+<p><strong>Function.</strong> Hold the current picture of the network, and nothing older than it needs. Four kinds of state matter for size. The <strong>vehicle tables</strong>, one per feed, replaced wholesale on each poll, plus a pre-built compact array of the bus table in wire form so that serving does not rebuild it. The <strong>detector states</strong>, one per bus seen in the last 30 minutes, holding the last few positions along its route and any excursion in progress; this is the set <span class="math inline">\(S\)</span>, larger than <span class="math inline">\(V\)</span> because it remembers vehicles that have gone quiet. The <strong>route indexes</strong>, one per learned route-direction, <span class="math inline">\(N_{routes}\)</span> of them, each a spatial grid over the route’s vertices so that projecting a fix costs a handful of cell lookups; and, beside each, a 256-sample shape gate. The <strong>leaderboard buckets</strong>, three open periods (day, week, month), each holding one running total per distinct vehicle seen in the period, <span class="math inline">\(L\)</span> per day. Around these sit the response caches: one entry per upstream key, bounded by entry count, with the multi-megabyte prediction body capped at four entries.</p>
+<p><strong>Input rate.</strong> Every record stage 1 keeps, <span class="math inline">\(V\)</span> bus records per poll and <span class="math inline">\(P\)</span> predictions per fetch, is written into this stage; the tables turn over completely each poll.</p>
+<p><strong>Output rate.</strong> Reads by stages 3 and 5: one pass over <span class="math inline">\(V\)</span> per poll for the detector and the leaderboard, one serialisation of a table per served request.</p>
+<p><strong>CPU.</strong> Table construction is inside the parse figure of <a href="#sec-ingest" class="quarto-xref">Section&nbsp;4.1</a>. The state’s own cost is indirect and shows up as garbage collection: 27.4 ms per poll with no viewer, 45 ms with one, because each poll allocates a fresh table and each served response allocates a body.</p>
+<p><strong>Memory.</strong> This is the stage the heap belongs to, and it is where the durable formula lives. Over 2,595 five-minute samples of the production process (15.5 days of uptime), heap used is fitted by two counters that the process reports about itself (<a href="#fig-heap" class="quarto-xref">Figure&nbsp;5</a>):</p>
+<p><span id="eq-heap"><span class="math display">\[ \text{heap} \approx 146\ \text{MB} + 3.48\ \text{KB} \cdot S + 0.326\ \text{KB} \cdot L_{open}  \tag{2}\]</span></span></p>
+<p>with <span class="math inline">\(R^2\)</span> = 0.79 and a residual standard deviation of 13.47 MB. The intercept is the baked geometry, the route indexes and the runtime; the first slope is everything held per followed bus, tables, detector state and trace bookkeeping together; the second is the leaderboard’s per-vehicle totals across the three open periods, <span class="math inline">\(L_{open}\)</span>, which grows through a month and drops when the month closes. The counters themselves ran from 56 to 10,288 vehicle states and 195,381 to 475,489 leaderboard entries in the window, so the fit is interpolating, not extrapolating. Production sits at a median of 266 MB heap (320 MB at the 95th percentile); the day-to-night swing in <a href="#fig-heap" class="quarto-xref">Figure&nbsp;5</a> is the <span class="math inline">\(S\)</span> term.</p>
+<p>Resident memory is larger, 858 MB at the median, and does not fit the counters. It includes 73 MB of buffers outside the JavaScript heap (bodies in flight, compression state) and whatever the runtime has reserved and not returned. The gap between heap and resident size is what a memory ceiling must be set against.</p>
+<div id="fig-heap" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-heap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-2-heap-fit.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-heap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Production heap over 15.5 days of one process, observed and as predicted by <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a> from the two counters below it. The daily wave is vehicle states; the slow rise is the open leaderboard periods. Sampled every five minutes from the process’s health endpoint; gaps are where the sampler was offline.
+</figcaption>
+</figure>
+</div>
+<p><strong>Storage.</strong> None; this stage is the reason stage 4 exists.</p>
+<p><strong>Scales with:</strong> <span class="math inline">\(S\)</span> (about 1.28 <span class="math inline">\(V\)</span> for a 30-minute window, measured), <span class="math inline">\(N_{routes}\)</span> for the intercept, and <span class="math inline">\(L_{open}\)</span> for the slow term. Not with viewers, and not with <span class="math inline">\(R_{bus}\)</span>: a stale record is dropped before it reaches this stage.</p>
+</section>
+<section id="sec-detection" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-detection"><span class="header-section-number">4.3</span> Online detection</h2>
+<p><strong>Function.</strong> Do, once per record, the work that produces something the feed did not carry. Four detectors run here. The <strong>diversion detector</strong> projects each routed bus onto its learned route through the grid index, updates its state, and applies the excursion rules that open, extend, confirm and retire events (the rules are the subject of the first document in this series). The <strong>leaderboard sampler</strong> advances every vehicle’s distance with a haversine step per fix, and for trains, which have no fixes, runs the same position inference the browser runs, once, on the shared prediction body. The <strong>rail sampler</strong> merges one departure board per tick into per-service timelines and places each service on the baked rail graph by clock, with a shortest-path search on a cache miss. The <strong>status and closure shapers</strong> turn free-text disruption notices and stop-closure lists into map geometry, once per cache miss rather than once per poll.</p>
+<p><strong>Input rate.</strong> <span class="math inline">\(V\)</span> bus records per poll into the first two; <span class="math inline">\(P\)</span> predictions per fetch into the inference; one board per tick into the rail sampler; one notice list per cache expiry into the shapers.</p>
+<p><strong>Output rate.</strong> Diversion transitions: 5,411 state changes per day, a few dozen live events at any time. Leaderboard: 22,930 vehicle totals per day. Rail: one position per tracked service per tick.</p>
+<p><strong>CPU.</strong> Per poll: diversion detector 10.9 ms, that is 1.7 µs per live bus; leaderboard sampling 24.8 ms early in a day, of which train inference is about 5 ms and the once-a-minute synchronous write of all open buckets is most of the rest; shaping under 1 ms. The write grows with the day: it serialises every open bucket, so its cost is proportional to <span class="math inline">\(L_{open}\)</span>, and over the 24-hour run the process’s CPU rose by about 6.7 ms per poll per hour of uptime at constant <span class="math inline">\(V\)</span>, with the live leaderboard file at 7 MB by the end of the day. The detector’s per-bus cost is small because the grid makes projection constant-time and the shape gate, a 256-sample median updated on every routed fix, is consulted only when an excursion is being judged.</p>
+<p><span id="eq-detect"><span class="math display">\[ \text{CPU}_{detect} \approx c_{proj} \cdot V \cdot (1 + N_{ev}) + c_{infer} \cdot P + c_{persist} \cdot L_{open} / 4, \qquad c_{proj} \approx 1.7\ \mu\text{s}  \tag{3}\]</span></span></p>
+<p>where <span class="math inline">\(N_{ev}\)</span> is the number of open events each fix is tested against, and the last term is the leaderboard persist amortised over the four polls in its minute.</p>
+<p><strong>Memory.</strong> Inside the <span class="math inline">\(S\)</span> term of <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a>: per vehicle at most 32 recent positions along the route, at most 2,000 excursion fixes while an excursion is open, and a 30-minute time-to-live. Per event at most 500 members and 12 route segments. Events are rare enough that they add nothing measurable to the heap fit.</p>
+<p><strong>Storage.</strong> Diversion transitions 1.31 MB per day; leaderboard 2.3 MB per closed day (<a href="#sec-persist" class="quarto-xref">Section&nbsp;4.4</a>).</p>
+<p><strong>Scales with:</strong> <span class="math inline">\(V\)</span> and <span class="math inline">\(N_{ev}\)</span> for the detector, <span class="math inline">\(P\)</span> for the inference, <span class="math inline">\(L_{open}\)</span> for the persist. Not with viewers.</p>
+</section>
+<section id="sec-persist" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="sec-persist"><span class="header-section-number">4.4</span> Persistence</h2>
+<p><strong>Function.</strong> Write down what the feeds said, once, in the cheapest form that the batch stage can read back. The <strong>trace writer</strong> is the one that matters. On each poll it compares every live bus’s report time with the last one it wrote for that vehicle and appends only the fixes whose time advanced: a bus that reported once and is still being carried by the feed costs nothing after the first line. Fixes are buffered and flushed every 5 s as JSON lines into one file per day. Smaller writers append diversion transitions, line-status and road-disruption snapshots (only when the payload changed or a heartbeat is due), and rewrite the live leaderboard file each minute. Every JSON file is written to a temporary name and renamed, so a crash leaves the previous file intact.</p>
+<p><strong>Input rate.</strong> <span class="math inline">\(V\)</span> live records per poll.</p>
+<p><strong>Output rate.</strong> <span class="math inline">\(F\)</span> = 8,768,876 new fixes per day, a daily mean of 101 per second or 1,522 per poll. At midday the rate is higher, 2,148 per poll or 146 per second, 0.335 per live bus per poll: a London bus reports about once every 45 s and the feed is polled three times as often. The de-duplication is what keeps the disk rate about a quarter of the feed’s record rate.</p>
+<p><strong>CPU.</strong> 2.8 ms per poll, about 1.3 µs per fix written. The comparison is a map lookup per live vehicle; the write is buffered.</p>
+<p><strong>Memory.</strong> Two maps of last-written time and position per vehicle id, inside the <span class="math inline">\(S\)</span> term; a line buffer capped at 500,000 lines so that a stalled disk cannot grow it without bound.</p>
+<p><strong>Storage.</strong> 86.6 bytes per fix as written, 763 MB per day; 16.4 bytes gzip-compressed as archived, 144 MB per day. Retention on the server is the smaller of <span class="math inline">\(D\)</span> = 7 days and a 2 GB cap on the directory, and at London’s rate the cap binds first: it holds about 2.8 days, so the nightly learner’s three-day window is in practice slightly short of three days. The archive off the server keeps everything. Everything else the process writes is under 10 MB a day put together (<a href="#tbl-storage" class="quarto-xref">Table&nbsp;7</a>).</p>
+<p><span id="eq-disk"><span class="math display">\[ \text{disk}_{server} \approx \min(b_{fix} \cdot F \cdot D,\ \text{cap}), \qquad b_{fix} \approx 86.6\ \text{B raw},\ 16.4\ \text{B compressed}  \tag{4}\]</span></span></p>
+<p><strong>Scales with:</strong> <span class="math inline">\(F\)</span>, which is <span class="math inline">\(V\)</span> times the operators’ report rate, and <span class="math inline">\(D\)</span> or the cap. Not with <span class="math inline">\(R_{bus}\)</span> and not with viewers.</p>
+</section>
+<section id="sec-serve" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="sec-serve"><span class="header-section-number">4.5</span> Serving and egress</h2>
+<p><strong>Function.</strong> Answer HTTP requests from stage 2’s state. Three route kinds. <strong>Direct-table routes</strong> serialise a pre-built array (buses, vessels, bikes). <strong>Proxy routes</strong> serve cached upstream bodies, shaped or raw, through the path of <a href="#sec-proxy" class="quarto-xref">Section&nbsp;3.2</a>. <strong>Derived routes</strong> build a body from detector state on each request (diversions, leaderboard, coverage). Every response is compressed per request, brotli at a low quality setting or gzip by what the browser accepts <span class="citation" data-cites="rfc7932">(<a href="#ref-rfc7932" role="doc-biblioref">Alakuijala and Szabadka, 2016</a>)</span>, and there is no cache of compressed responses: each request pays its own compression. Cache-control headers are set only where the body changes slowly (learned routes, coverage, diversions); the edge in front of the origin caches those for hours and, by its default behaviour, the live bodies for a few seconds, which is enough to merge simultaneous requests but not to change the per-tab arithmetic below.</p>
+<p><strong>Input rate.</strong> <span class="math inline">\(U\)</span> tabs, each polling the endpoints of <a href="#sec-client" class="quarto-xref">Section&nbsp;5</a> on fixed intervals: 47.4 requests per minute per tab, independent of what the viewer is looking at.</p>
+<p><strong>Output rate.</strong> Per tab per minute, 2,064 KB compressed, of which the prediction body is 63% and the bus body 26% (<a href="#fig-egress" class="quarto-xref">Figure&nbsp;6</a>). Per tab per hour, 123.8 MB; per tab-day, 3 GB. The ratio of raw to compressed is what makes this affordable: 33:1 for predictions (917 bytes raw per prediction, 28 compressed), 6.5:1 for buses (137 bytes raw per bus, 21 compressed, on the short-key wire format).</p>
+<div id="fig-egress" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-egress-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-3-tab-egress.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-egress-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: What one open tab costs the origin per minute, by endpoint. Request count is set by the rail board and aircraft layers; bytes are set by the prediction and bus bodies. Body sizes measured on the production origin on 2026-09-30.
+</figcaption>
+</figure>
+</div>
+<p><strong>CPU.</strong> With no viewer, 0.3 ms per poll, the health checks. With one synthetic viewer the main thread gains 90 ms per 15 s: 27.4 ms in the routes themselves, mostly serialisation of the prediction body, and the rest in garbage collection (27.4 to 45 ms), socket and stream glue and the extra prediction fetches the viewer’s misses trigger. Off the main thread the process gains a further 106 ms, which is the compression running on the thread pool. Both figures are from the profiled run and carry the profiler’s overhead, so the unprofiled cost is smaller, about half.</p>
+<p><span id="eq-serve"><span class="math display">\[ \text{CPU}_{serve} \approx U \sum_i \frac{T_{bus}}{T_i}\,(c_{ser} + c_{br})\,B_i^{raw}, \qquad \text{egress} \approx U \sum_i \frac{B_i^{br}}{T_i}  \tag{5}\]</span></span></p>
+<p>summing over the polled endpoints <span class="math inline">\(i\)</span> with interval <span class="math inline">\(T_i\)</span> and body sizes <span class="math inline">\(B_i\)</span>. The bus and prediction terms dominate both sums.</p>
+<p><strong>Memory.</strong> Transient response buffers; the pre-built bus wire array is the one thing kept between requests.</p>
+<p><strong>Storage.</strong> None.</p>
+<p><strong>Scales with:</strong> <span class="math inline">\(U\)</span>, linearly, in CPU and egress; and with <span class="math inline">\(P\)</span> and <span class="math inline">\(V\)</span> through the body sizes. This is the only stage that scales with the audience.</p>
+</section>
+<section id="sec-batch" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="sec-batch"><span class="header-section-number">4.6</span> Batch jobs</h2>
+<p><strong>Function.</strong> Turn the trace archive into the geometry and summaries the live path needs, on a schedule that reads freshness stamps rather than a clock, so that a restart never skips a run and never repeats one. The <strong>route learner</strong> is the large job: a separate process spawned once a day that reads three days of traces and fits, for each route-direction key with enough fixes, the polyline that the browser snaps buses to and the detector projects them onto (the method is document 1’s subject). A weekly job fetches the operators’ published route shapes as priors. In-process, once a day, the <strong>coverage builder</strong> resamples every learned route into 25 m pieces and counts overlaps on a 30 m grid, yielding to the event loop every 50 routes; the <strong>detector index rebuild</strong> reloads the learned routes into stage 2’s grids; and hourly, the <strong>rollup writer</strong> streams each completed day of traces once into per-route totals, and trace maintenance enforces retention.</p>
+<p><strong>Input rate.</strong> Three days of traces per learner run, <span class="math inline">\(3F\)</span> = 26.3 million fixes; one day, <span class="math inline">\(F\)</span>, per rollup.</p>
+<p><strong>Output rate.</strong> In one run, 1,647 keys pass the quality gate out of 2,210 seen in the window; the learned set on disk accumulates across runs to <span class="math inline">\(N_{routes}\)</span> files, 8.3 MB as a compressed snapshot; 2,142 route-direction rollup rows and 303 KB per day; one coverage file.</p>
+<p><strong>CPU.</strong> The learner takes about 29 minutes of one core on the reference machine, in its own process, so the live path is unaffected except through disk contention. The coverage build is the largest transient the live process itself runs; it is chunked to yield to the event loop, and its duration has not been measured separately.</p>
+<p><strong>Memory.</strong> The learner reads traces in chunks with a budget of four million fixes, about 100 MB, so its footprint is bounded whatever <span class="math inline">\(F\)</span> is. The coverage build is the live process’s highest memory peak of the day: 88 bytes per 25 m piece over the whole learned network, transient.</p>
+<p><strong>Storage.</strong> The learned snapshot, 8.3 MB per day if archived; rollups, 303 KB per day.</p>
+<p><strong>Scales with:</strong> <span class="math inline">\(F\)</span> for time, <span class="math inline">\(N_{routes}\)</span> for output and for the coverage peak. Not with viewers.</p>
+</section>
+</section>
+<section id="sec-client" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Client-side processing</h1>
+<p>The browser is where the map is computed. This section describes it only as far as it bears on load: what it asks the origin for, and what it does instead of asking.</p>
+<section id="sec-tab" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="sec-tab"><span class="header-section-number">5.1</span> What a tab requests</h2>
+<p>Each live layer owns a poll loop on a fixed interval, registered with one lifecycle utility so that a hidden page pauses every loop and a page coming back fires each once. <a href="#tbl-tab" class="quarto-xref">Table&nbsp;3</a> is the resulting request profile of one visible tab; it is the <span class="math inline">\(U\)</span>-multiplier of <a href="#eq-serve" class="quarto-xref">Equation&nbsp;5</a>.</p>
+<div id="tbl-tab" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-tab-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: One visible tab’s periodic requests. Diversions and stop closures add about 0.9 per minute when their layers are on. Bodies measured 2026-09-30, daytime.
+</figcaption>
+<div aria-describedby="tbl-tab-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Endpoint</th>
+<th>Interval</th>
+<th>Requests per minute</th>
+<th>Body, compressed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Rail departure board (17 hubs, round robin)</td>
+<td>4 s</td>
+<td>15</td>
+<td>102 KB raw, 2 to 3 KB compressed</td>
+</tr>
+<tr class="even">
+<td>Aircraft</td>
+<td>5 s</td>
+<td>12</td>
+<td>10.4 KB</td>
+</tr>
+<tr class="odd">
+<td>Train predictions, all lines</td>
+<td>10 s</td>
+<td>6</td>
+<td>217 KB</td>
+</tr>
+<tr class="even">
+<td>Vessels</td>
+<td>10 s</td>
+<td>6</td>
+<td>4.7 KB</td>
+</tr>
+<tr class="odd">
+<td>Buses</td>
+<td>15 s</td>
+<td>4</td>
+<td>136 KB</td>
+</tr>
+<tr class="even">
+<td>Leaderboard</td>
+<td>30 s</td>
+<td>2</td>
+<td>0.5 KB</td>
+</tr>
+<tr class="odd">
+<td>Bikes, disruptions, roadworks, tides</td>
+<td>60 to 300 s</td>
+<td>2.4 together</td>
+<td>31 KB at most</td>
+</tr>
+<tr class="even">
+<td><strong>Total</strong></td>
+<td></td>
+<td><strong>47.4</strong></td>
+<td><strong>2,064 KB per minute</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Three things about this profile are not obvious from the table. First, request count and byte count have different drivers: the rail board and aircraft layers make 57% of the requests and 8% of the bytes, the prediction body 13% of the requests and 63% of the bytes. Second, the prediction body is served with about twice the fields the browser reads, eleven of some twenty-one per prediction, so the largest term in the egress sum has a factor of roughly two available by trimming. Third, the profile is independent of the viewport and of which layers are visible for most layers; only buses, disruptions, diversions and closures stop polling when hidden in the legend. A hidden <em>page</em> pauses everything except the leaderboard and an open camera popup.</p>
+<p>Outside the periodic profile, a tab fetches learned route shapes on demand, one file per route-direction of up to 200 KB, cached in the browser up to 600 entries. At low zoom every tracked bus is advanced along its route, which means the whole fleet’s routes are requested once; these files carry a one-hour cache header and are the one variable-volume source a tab has.</p>
+</section>
+<section id="sec-tab-compute" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="sec-tab-compute"><span class="header-section-number">5.2</span> What a tab computes</h2>
+<p>Per prediction body, the browser infers a position for every train on every line from arrival countdowns and the baked branch geometry, and hands each to an interpolator that advances it per frame along its segment. Per bus body, it updates a per-vehicle model, snaps each new fix to the learned route with hysteresis, and runs a one-dimensional filter along the route so that the icon moves at a plausible speed between fixes. Per rail board, it places services on the network graph with a shortest-path search on a 431-node graph, cached. Per aircraft body, it dead-reckons from the feed’s own timestamps. The symbol layers’ GeoJSON rebuilds are gated to about 15 Hz, and hot paths are allocation-free by design so that a fleet of several thousand buses does not churn the browser’s garbage collector.</p>
+<p>None of this touches the origin. It is the reason <span class="math inline">\(U\)</span> appears in <a href="#eq-serve" class="quarto-xref">Equation&nbsp;5</a> and nowhere else in this document.</p>
+</section>
+</section>
+<section id="sec-budget" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> End-to-end budget</h1>
+<p><a href="#tbl-budget" class="quarto-xref">Table&nbsp;4</a> collects the stages’ costs at London scale into one place. Read it with <a href="#eq-ingest" class="quarto-xref">Equation&nbsp;1</a> to <a href="#eq-serve" class="quarto-xref">Equation&nbsp;5</a> for how each row moves.</p>
+<div id="tbl-budget" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-budget-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: The budget at London scale. CPU from the profiled local run (proportions) and the unprofiled control run (total); memory from production; disk from the archive.
+</figcaption>
+<div aria-describedby="tbl-budget-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>CPU per 15 s (main thread)</th>
+<th>Memory</th>
+<th>Disk per day</th>
+<th>Scales with</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 Ingest and parse</td>
+<td>112 ms</td>
+<td>one body in flight</td>
+<td>none</td>
+<td><span class="math inline">\(R_{bus}\)</span>, <span class="math inline">\(B_{bus}\)</span>, <span class="math inline">\(B_{pred}\)</span></td>
+</tr>
+<tr class="even">
+<td>2 State and caches</td>
+<td>indirect, via GC (below)</td>
+<td>146 MB + 3.48 KB <span class="math inline">\(\cdot S\)</span> + 0.326 KB <span class="math inline">\(\cdot L_{open}\)</span></td>
+<td>none</td>
+<td><span class="math inline">\(S\)</span>, <span class="math inline">\(N_{routes}\)</span>, <span class="math inline">\(L_{open}\)</span></td>
+</tr>
+<tr class="odd">
+<td>3 Online detection</td>
+<td>36 ms</td>
+<td>inside <span class="math inline">\(S\)</span></td>
+<td>1.31 + 2.3 MB</td>
+<td><span class="math inline">\(V\)</span>, <span class="math inline">\(N_{ev}\)</span>, <span class="math inline">\(P\)</span></td>
+</tr>
+<tr class="even">
+<td>4 Persistence</td>
+<td>2.8 ms</td>
+<td>line buffer</td>
+<td>763 MB raw, 144 MB archived</td>
+<td><span class="math inline">\(F\)</span>, <span class="math inline">\(D\)</span>, cap</td>
+</tr>
+<tr class="odd">
+<td>5 Serve</td>
+<td><span class="math inline">\(\approx\)</span> 90 ms per viewer (+ <span class="math inline">\(\approx\)</span> 106 ms off-thread), profiled</td>
+<td>transient</td>
+<td>none</td>
+<td><span class="math inline">\(U\)</span>, <span class="math inline">\(P\)</span>, <span class="math inline">\(V\)</span></td>
+</tr>
+<tr class="even">
+<td>6 Batch</td>
+<td>29 min per day, separate process</td>
+<td><span class="math inline">\(\le\)</span> 100 MB, separate</td>
+<td>303 KB + 8.3 MB</td>
+<td><span class="math inline">\(F\)</span>, <span class="math inline">\(N_{routes}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Runtime and other</td>
+<td>50 ms (GC 27, native code, vessel stream)</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Whole process, no viewer</strong></td>
+<td><strong>201 ms main thread (profiled, midday); all threads 476 ms = 3.17% of one core as a weekday mean, 286 to 596 ms by hour</strong></td>
+<td><strong>266 MB heap, 858 MB resident (production medians)</strong></td>
+<td><strong>763 MB, 99% traces</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Four readings of the table.</p>
+<p><strong>CPU is not the constraint.</strong> The whole live path averages 3.17% of one core over a weekday and never exceeded 635 ms per poll at the 95th percentile of 30-second samples. Over the day it fits 269 ms fixed, plus 26.3 µs per live vehicle, plus 6.7 ms per hour of the open leaderboard day (<span class="math inline">\(R^2\)</span> 0.62); the fixed part is the feed, the second is stages 1 to 4 per kept record, the third is the leaderboard persist. The main thread, the only place where a slow operation can delay a poll or a response, is busy 1.34% of the time in the profiled run and about 23% of the process total; the rest is TLS, inflate, compression and garbage-collection helpers on the runtime’s own threads. Headroom is set not by the average but by the largest single block on the main thread, the bus parse, which is why the national scenario in <a href="#sec-scaling" class="quarto-xref">Section&nbsp;7</a> reaches a latency concern long before it reaches a core. For viewers, <a href="#eq-serve" class="quarto-xref">Equation&nbsp;5</a> with the profiled per-viewer cost gives on the order of 77 simultaneous tabs per core, and about twice that unprofiled.</p>
+<p><strong>Memory is the constraint, and it is understood.</strong> The resident size sets the instance class, and it is the sum of a heap given by <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a> and a further few hundred megabytes outside it. The two counters in the formula are reported by the process, so a ceiling can be chosen from them rather than found by crashing. The system’s one outage of memory was a leak of the kind <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a> cannot see, retained substrings, and was found with a heap snapshot, not with this model.</p>
+<p><strong>Disk is small and linear.</strong> Under a gigabyte a day, nearly all traces, and bounded on the server by the 2 GB cap. The archive off the server is where the growth goes, 53 GB per year compressed.</p>
+<p><strong>Egress is the only cost that follows the audience.</strong> At 123.8 MB per tab-hour, egress is what a change in audience shows up as first, and the prediction body is where two thirds of it is. The two levers not yet pulled are trimming that body to the fields the browser reads, roughly a factor of two, and setting a deliberate edge cache lifetime on the live bodies equal to their poll interval, so that the edge rather than the origin serves every tab but the first in each interval.</p>
+<section id="sec-latency" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="sec-latency"><span class="header-section-number">6.1</span> Latency from source to screen</h2>
+<p>The chain for a bus position has five delays: the operator’s report interval; the feed’s publication lag; the 15 s server poll; the browser’s 15 s poll; and the browser’s own smoothing, which trades some seconds of lag for continuous motion. <a href="#fig-age" class="quarto-xref">Figure&nbsp;7</a> measures the first three together as the age of each fix at the moment the server’s response leaves: median 32 s by day (46 s at night, when operators report less often), 47% under 30 s, 7% over two minutes, the tail being vehicles the operators’ systems are slow to forward. Add half a browser poll on average and the display is typically 40 s behind the vehicle. The server contributes at most one poll interval of that; the rest is upstream and by design.</p>
+<div id="fig-age" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-age-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="figures/fig-4-bus-age.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-age-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Age of each bus fix when served, over 32,057 fixes in five consecutive daytime responses from the production origin, 2026-09-30. The server adds at most 15 s; the rest is the operators’ report interval and the feed’s forwarding delay.
+</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="sec-scaling" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Scaling</h1>
+<p>The formulas of <a href="#sec-stages" class="quarto-xref">Section&nbsp;4</a> can be evaluated for deployments other than the reference one. Three are worked here, each changing one parameter, each showing which stage moves first. The numbers are the formulas applied to the calibration values, not measurements; they are printed as computed but should be read to about one significant figure.</p>
+<section id="sec-sc-viewers" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="sec-sc-viewers"><span class="header-section-number">7.1</span> Ten times the audience</h2>
+<p><span class="math inline">\(U\)</span> = 10 simultaneous tabs. Stages 1 to 4 and 6 do not change. Stage 5 adds about 90 ms of main-thread time per tab per 15 s at the profiled cost, taking the main thread from 1.34% to about 7.3% busy, and the whole process to about 19% of a core profiled, roughly half that unprofiled. Egress becomes 29.7 GB per day. Upstream calls change only through the prediction route’s missing in-flight join, and the budget caps even that. What moves first is the egress bill, and the response is edge caching of the live bodies, which turns the <span class="math inline">\(U\)</span> in <a href="#eq-serve" class="quarto-xref">Equation&nbsp;5</a> into the number of edge locations.</p>
+</section>
+<section id="sec-sc-uk" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="sec-sc-uk"><span class="header-section-number">7.2</span> A national feed</h2>
+<p>The same bus feed without a bounding box carries about 40,000 records per poll, 4.7 times London, so roughly <span class="math inline">\(V\)</span> <span class="math inline">\(\approx\)</span> 30,357 live vehicles by day. Stage 1 scales with records: 36 MB of XML per poll, 207 GB per day decoded, and about 445 ms of parse and I/O per poll. Stage 3’s detector goes to about 52 ms. The main thread would be busy about 4% of the time, still comfortable, but with a single 36 MB document decoded and parsed on it every 15 s, the parse block would approach 200 ms of continuous main-thread time, which is where response latency would start to be felt. Memory adds about 109 MB of heap by <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a>, and the prediction caches are unchanged. Traces grow to 3.6 GB per day as written and 681 MB archived, so the 2 GB cap would hold about 0.6 of a day and would have to be raised for the learner to see its three-day window; the learner itself grows to roughly 137 minutes. The bus body served to browsers grows to 642 KB compressed, which is where the design would need to change: a national map would have to serve by viewport, giving up the identical-body property. What moves first is the parse on the main thread, and the response is a worker thread for stage 1.</p>
+</section>
+<section id="sec-sc-retention" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="sec-sc-retention"><span class="header-section-number">7.3</span> A year of traces on the server</h2>
+<p><span class="math inline">\(D\)</span> = 365 days, with the cap raised to match. Only stage 4 and the batch stage change. Disk becomes 52.6 GB compressed or 278 GB as written, plus 111 MB of rollups and 478 MB of transitions. Nothing in the live path reads more than a day, and the learner reads three, so CPU and memory do not move. What moves first is the volume size, and the response is what the reference deployment already does: keep <span class="math inline">\(D\)</span> small on the server and archive off it.</p>
+</section>
+</section>
+<section id="sec-limits" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Limits of the model</h1>
+<p>The formulas are only as good as their calibration, and the calibration has known edges.</p>
+<ul>
+<li><strong>CPU was measured on a laptop, not the production instance.</strong> The profiled and control runs used the production feeds but a local machine and a newer runtime (<a href="#sec-reference">Appendix A</a>). Absolute milliseconds will differ on the deployed hardware; the proportions between stages and the scaling laws are what transfer.</li>
+<li><strong>One weekday.</strong> The stage-level profile comes from two half-hour windows and the whole-process figures from one continuous weekday (24 hours). The two agree where they overlap, but a weekend and a disrupted day have not been measured, and the 24-hour fit explains 1% of the variance: the rest is garbage-collection timing and the nightly jobs.</li>
+<li><strong>The heap fit explains 79% of the variance and the samples are autocorrelated.</strong> Consecutive five-minute samples are not independent, so the coefficients’ formal standard errors understate the uncertainty. The residual, 13.47 MB, is the honest error bar. Resident memory has no usable fit; only the heap does.</li>
+<li><strong>Compression cost is inferred, not measured.</strong> It runs on the thread pool, invisible to the main-thread profiler; the figure quoted is the process-wide difference between the viewer and quiet phases less the main-thread difference, and both contain the profiler’s own overhead.</li>
+<li><strong>The JSON coefficient is uncertain by a factor of two.</strong> The prediction body was 1.8 times larger by day than by night, but the profiled JSON parse time was the same in both runs, so <span class="math inline">\(c_{json}\)</span> is calibrated from the day run and should be read as an order of magnitude.</li>
+<li><strong>The audience scenario is a linear extrapolation from one synthetic viewer.</strong> Ten real viewers would also bring popup traffic with viewer-chosen keys and concurrent cache misses, neither of which the synthetic viewer generated.</li>
+<li><strong>Two streams are unmeasured.</strong> The vessel stream’s message rate is invisible to the process’s request counters, and the aircraft upstream answered the replica with errors in both runs, so its parse and serve cost is absent from the profile.</li>
+<li><strong>Two fetchers lack the in-flight join.</strong> The all-lines prediction route and the rail board route are hand-written and do not join concurrent misses, so a burst of first-time viewers within one cache window can spend several budget units on identical fetches. It is the one place where the upstream-call ceiling of <a href="#sec-triggers" class="quarto-xref">Section&nbsp;3.1</a> is soft; the budget still holds.</li>
+</ul>
+</section>
+<section id="references" class="level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-rfc7932" class="csl-entry" role="listitem">
+Alakuijala, J., Szabadka, Z., 2016. Brotli compressed data format (No. RFC 7932). Internet Engineering Task Force. <a href="https://doi.org/10.17487/RFC7932">https://doi.org/10.17487/RFC7932</a>
+</div>
+<div id="ref-siri" class="csl-entry" role="listitem">
+CEN, 2015. <span>CEN/TS 15531</span>: Service interface for real-time information (SIRI), part 5: Vehicle monitoring.
+</div>
+<div id="ref-bods" class="csl-entry" role="listitem">
+Department for Transport, 2026. Bus open data service: Developer documentation.
+</div>
+<div id="ref-darwin" class="csl-entry" role="listitem">
+Rail Delivery Group, 2026. <a href="https://raildata.org.uk">Live departure boards web service (<span>Darwin</span>) via the rail data marketplace</a>.
+</div>
+<div id="ref-stonebraker2005" class="csl-entry" role="listitem">
+Stonebraker, M., Çetintemel, U., Zdonik, S., 2005. The 8 requirements of real-time stream processing, in: ACM SIGMOD Record. pp. 42–47. <a href="https://doi.org/10.1145/1107499.1107504">https://doi.org/10.1145/1107499.1107504</a>
+</div>
+<div id="ref-tflroad" class="csl-entry" role="listitem">
+Transport for London, 2026b. TfL unified API: Road disruptions.
+</div>
+<div id="ref-tflapi" class="csl-entry" role="listitem">
+Transport for London, 2026a. <a href="https://api.tfl.gov.uk">Unified <span>API</span>: Line arrivals and status</a>.
+</div>
+</div>
+</section>
+<section id="sec-reference" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix A. Reference deployment measurements</h1>
+<p>All figures in the body come from the measurements below. The replica runs used the code at commit <code>6875e27</code>; the production endpoint and fix-age measurements used the build deployed on the day named. Each is reproducible from the scripts in the <code>02-architecture/scripts/</code> directory of the reports repository against the raw files in <code>data/</code>.</p>
+<p><strong>Deployment.</strong> Production: one Railway service (single instance, persistent volume) behind Cloudflare, base-map tiles on Cloudflare R2, Node 22. Local replica for CPU: Apple M4, Node 24.13, same commit, fed by the production upstreams with the production keys, one synthetic viewer at the front-end’s poll intervals.</p>
+<p><strong>Method by quantity.</strong></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Quantity</th>
+<th>Source</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Upstream volumes</td>
+<td>production upstreams</td>
+<td>three direct polls per feed on 2026-09-30 12:40 to 13:13 UTC; cadence from the replica’s request counters (24 requests in 360 s)</td>
+</tr>
+<tr class="even">
+<td>Live vehicles, new fixes</td>
+<td>local replica</td>
+<td>per-poll log lines and the trace file written during the run</td>
+</tr>
+<tr class="odd">
+<td>CPU by stage</td>
+<td>local replica, profiled</td>
+<td>V8 sampling profiler on the main thread, 60 s warm-up excluded, 360 s quiet phase and 360 s viewer phase; functions attributed to stages by file</td>
+</tr>
+<tr class="even">
+<td>CPU total</td>
+<td>local replica, unprofiled</td>
+<td>process CPU sampled every 30 s over 271 s, pollers only</td>
+</tr>
+<tr class="odd">
+<td>Heap model</td>
+<td>production</td>
+<td>2,595 health samples at 300 s from 2026-09-14 to 2026-09-30, one uptime segment, first 30 min after start excluded; ordinary least squares</td>
+</tr>
+<tr class="even">
+<td>Endpoint bodies</td>
+<td>production</td>
+<td>five requests per endpoint with brotli and gzip accepted, wire bytes recorded, raw from the decoded body</td>
+</tr>
+<tr class="odd">
+<td>Per-tab profile</td>
+<td>front-end source</td>
+<td>poll intervals summed; bytes from the endpoint bodies</td>
+</tr>
+<tr class="even">
+<td>Storage</td>
+<td>archive</td>
+<td>file sizes and line counts over 40 days, medians over the last seven</td>
+</tr>
+<tr class="odd">
+<td>Fix age</td>
+<td>production</td>
+<td>report time of every bus in five consecutive responses subtracted from the response time</td>
+</tr>
+<tr class="even">
+<td>Learner duration, keys seen and learned</td>
+<td>local run</td>
+<td>one run on 2026-09-28 over three days of traces (document 1, table 5.1)</td>
+</tr>
+<tr class="odd">
+<td>24-hour profile</td>
+<td>local replica, unprofiled, and production</td>
+<td>replica run 2026-09-30 21:00 UTC to 2026-10-01 22:00 UTC with process CPU and memory sampled every 30 s and the per-poll log; production bodies fetched every 10 minutes (148 samples); hourly medians in <code>data-24h/diurnal.json</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Day and night.</strong> Night: 2026-09-29 22:14 to 22:40 UTC. Day: 2026-09-30 12:40 to 13:13 UTC. Same code, machine and method.</p>
+<div id="tbl-daynight" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-daynight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: The two calibration windows.
+</figcaption>
+<div aria-describedby="tbl-daynight-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Quantity</th>
+<th>Night</th>
+<th>Day</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Feed records per poll</td>
+<td>8,273</td>
+<td>8,454</td>
+</tr>
+<tr class="even">
+<td>Live vehicles kept</td>
+<td>3,314</td>
+<td>6,416</td>
+</tr>
+<tr class="odd">
+<td>Logged parse ms per poll</td>
+<td>44</td>
+<td>42</td>
+</tr>
+<tr class="even">
+<td>Main-thread busy ms per 15 s</td>
+<td>203.7</td>
+<td>201.2</td>
+</tr>
+<tr class="odd">
+<td>Process CPU ms per 15 s, unprofiled</td>
+<td>423.7</td>
+<td>434.9</td>
+</tr>
+<tr class="even">
+<td>Replica heap median, MB</td>
+<td>183</td>
+<td>193</td>
+</tr>
+<tr class="odd">
+<td>Vehicle states at end of run</td>
+<td>4,466</td>
+<td>8,191</td>
+</tr>
+<tr class="even">
+<td>Predictions per upstream fetch</td>
+<td>4,487</td>
+<td>8,084</td>
+</tr>
+<tr class="odd">
+<td>Bus body, raw / compressed KB</td>
+<td>456 / 77</td>
+<td>876 / 136</td>
+</tr>
+<tr class="even">
+<td>Prediction body, raw / compressed KB</td>
+<td>4,788 / 153</td>
+<td>7,123 / 217</td>
+</tr>
+<tr class="odd">
+<td>Fix age at response, median / p95 s</td>
+<td>46.5 / 181.5</td>
+<td>32 / 155.1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>Twenty-four hours.</strong> Hourly extremes of the weekday run, UTC.</p>
+<div id="tbl-24h" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-24h-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: The weekday range of the quantities that drive load; 1 of 5,907 polls failed upstream.
+</figcaption>
+<div aria-describedby="tbl-24h-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Quantity</th>
+<th>Low</th>
+<th>High</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Live buses per poll</td>
+<td>611 at 02:00</td>
+<td>7,064 at 15:00</td>
+</tr>
+<tr class="even">
+<td>Train predictions per fetch</td>
+<td>80 at 01:00</td>
+<td>9,331 at 15:00</td>
+</tr>
+<tr class="odd">
+<td>Bus feed, KB on the wire per poll</td>
+<td>1,082</td>
+<td>1,144</td>
+</tr>
+<tr class="even">
+<td>Process CPU, ms per 15 s</td>
+<td>286</td>
+<td>596</td>
+</tr>
+<tr class="odd">
+<td>Heap used, MB</td>
+<td>164</td>
+<td>415</td>
+</tr>
+<tr class="even">
+<td>Bus fix age at response, median s</td>
+<td>43.4</td>
+<td>53.05</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>Storage.</strong></p>
+<div id="tbl-storage" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-storage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Storage rates from the archive, 40 days, medians over 2026-09-23 to 2026-09-29.
+</figcaption>
+<div aria-describedby="tbl-storage-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>Bytes per day (median of 7)</th>
+<th>Records per day</th>
+<th>Bytes per record</th>
+<th>Per year</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bus traces, as written</td>
+<td>763 MB</td>
+<td>8,768,876 fixes</td>
+<td>86.6</td>
+<td>278 GB</td>
+</tr>
+<tr class="even">
+<td>Bus traces, archived (gzip)</td>
+<td>144 MB</td>
+<td>same</td>
+<td>16.4</td>
+<td>52.6 GB</td>
+</tr>
+<tr class="odd">
+<td>Rollups</td>
+<td>303 KB</td>
+<td>2,142 route-directions</td>
+<td>142</td>
+<td>111 MB</td>
+</tr>
+<tr class="even">
+<td>Diversion transitions</td>
+<td>1.31 MB</td>
+<td>5,411</td>
+<td>242</td>
+<td>478 MB</td>
+</tr>
+<tr class="odd">
+<td>Line status snapshots</td>
+<td>4.7 MB</td>
+<td>131 snapshots</td>
+<td>36 KB</td>
+<td>1.7 GB</td>
+</tr>
+<tr class="even">
+<td>Leaderboard day archive</td>
+<td>2.3 MB</td>
+<td>22,930 totals</td>
+<td>100</td>
+<td>0.8 GB</td>
+</tr>
+<tr class="odd">
+<td>Learned route snapshot</td>
+<td>8.3 MB</td>
+<td>about 1,950 files</td>
+<td></td>
+<td>3.0 GB</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p><strong>Second calibration point.</strong> The Dubai deployment runs the same build with no bus feed, no train inference and 213 bike stations: heap 30 MB, resident 117 MB after 15 days of uptime. That is the intercept of <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a> without London’s baked geometry and route indexes, and it bounds what the runtime and framework cost on their own.</p>
+</section>
+<section id="sec-code" class="level1 unnumbered">
+<h1 class="unnumbered">Appendix B. Stages to code</h1>
+<table class="caption-top table">
+<caption>Where each stage lives. The two <code>shared/</code> inference files are hand-maintained copies of their front-end counterparts so that the leaderboard ranks by the same positions the map shows.</caption>
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Backend (<code>backend/src/</code>)</th>
+<th>Front-end (<code>frontend/src/</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 Ingest</td>
+<td><code>bods-client.ts</code> (SIRI parser, vehicle table), <code>ais-client.ts</code>, <code>gbfs-client.ts</code>, <code>status-recorder.ts</code>, <code>routes/proxy-route.ts</code> (generic proxy), <code>routes/external.ts</code>, <code>tfl-client.ts</code>, <code>rate-budget.ts</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>2 State</td>
+<td><code>ttl-cache.ts</code>, tables inside the clients, <code>diversion-detector.ts</code> (states, indexes, gates), <code>leaderboard.ts</code> (buckets)</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3 Detection</td>
+<td><code>diversion-detector.ts</code>, <code>leaderboard.ts</code> + <code>shared/position-inference.ts</code>, <code>nr-sampler.ts</code> + <code>shared/nr-inference.ts</code>, <code>disruption-resolver.ts</code>, <code>bus-stop-closures.ts</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>4 Persist</td>
+<td><code>trace-writer.ts</code>, <code>rollup-writer.ts</code>, <code>status-recorder.ts</code>, <code>leaderboard.ts</code> (persist), <code>config.ts</code> (<code>persistPath</code>)</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>5 Serve</td>
+<td><code>app.ts</code> (wiring, compression), <code>routes/*.ts</code>, <code>server.ts</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>6 Batch</td>
+<td><code>learner-scheduler.ts</code> → <code>scripts/learn-bus-routes.mjs</code>, <code>scripts/fetch-bus-prior.mjs</code>; <code>coverage-writer.ts</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Client</td>
+<td></td>
+<td><code>main.ts</code>; <code>layers/</code> (one file per layer); <code>realtime/</code> (<code>position-inference.ts</code>, <code>interpolator.ts</code>, <code>bus-kalman.ts</code>); <code>util/</code> (<code>lifecycle.ts</code>, <code>render-gate.ts</code>)</td>
+</tr>
+<tr class="even">
+<td>Measurement</td>
+<td><code>GET /health</code> (memory and component counters)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

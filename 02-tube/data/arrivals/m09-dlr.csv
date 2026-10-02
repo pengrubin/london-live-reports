@@ -1,0 +1,2 @@
+fresh_polls,rows,rows_le_480,stop_keys_le_480,leading_edges,stop_keys_per_train,rows_per_train,rows_per_group_mean
+4874,1258072,683487,496692,206016,2.41,3.32,14.91

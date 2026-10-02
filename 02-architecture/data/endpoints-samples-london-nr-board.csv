@@ -1,0 +1,11 @@
+deployment,endpoint,path,round,sampled_at_utc,status,raw_bytes,gzip_wire_bytes,br_wire_bytes,records,count_basis,ttfb_ms,total_ms,gzip_total_ms,x-cache,cf-cache-status,age,cache-control,content-encoding,content-type,error
+london,nr-board (VIC),/api/nr-board,1,2026-09-30T12:47:26Z,200,20002,3233,3196,20,services[],260,261,206,hit,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (CLJ),/api/nr-board,1,2026-09-30T12:47:28Z,200,12797,2458,2526,20,services[],206,207,215,hit,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (VIC),/api/nr-board,2,2026-09-30T12:48:00Z,200,20002,3074,3196,20,services[],223,224,781,hit,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (CLJ),/api/nr-board,2,2026-09-30T12:48:02Z,200,13267,2577,2644,20,services[],581,582,226,miss,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (VIC),/api/nr-board,3,2026-09-30T12:48:33Z,200,19877,3074,3014,20,services[],380,381,201,hit,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (CLJ),/api/nr-board,3,2026-09-30T12:48:36Z,200,13267,2577,2644,20,services[],214,215,203,hit,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (VIC),/api/nr-board,4,2026-09-30T12:49:07Z,200,19650,3063,3039,20,services[],1009,1010,235,miss,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (CLJ),/api/nr-board,4,2026-09-30T12:49:09Z,200,13270,2581,2635,20,services[],537,538,220,miss,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (VIC),/api/nr-board,5,2026-09-30T12:49:41Z,200,19650,3063,3039,20,services[],200,202,199,hit,DYNAMIC,,,br,application/json; charset=utf-8,
+london,nr-board (CLJ),/api/nr-board,5,2026-09-30T12:49:43Z,200,13270,2581,2635,20,services[],206,206,299,hit,DYNAMIC,,,br,application/json; charset=utf-8,

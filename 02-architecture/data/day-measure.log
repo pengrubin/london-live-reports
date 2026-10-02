@@ -1,0 +1,197 @@
+13:40:37 A endpoints
+london: 28 endpoints, 25 manifest lines, 1960 learned routes
+  round 1/5 done
+  round 2/5 done
+  round 3/5 done
+  round 4/5 done
+  round 5/5 done
+wrote endpoints.csv
+13:47:23 A nr-board
+london: 2 endpoints, 25 manifest lines, 1960 learned routes
+  round 1/5 done
+  round 2/5 done
+  round 3/5 done
+  round 4/5 done
+  round 5/5 done
+wrote endpoints-nr-board.csv
+13:49:44 G bus age
+{"pooled": {"fixes": 32057, "min": 6.0, "p5": 9.1, "p25": 19.0, "p50": 32.0, "p75": 52.0, "p90": 86.0, "p95": 155.1, "p99": 261.0, "max": 301.1, "mean": 45.6}, "vehicles": [6403, 6402, 6417, 6412, 6423]}
+13:50:45 F dubai
+dubai: 17 endpoints, 4 manifest lines, 0 learned routes
+  round 1/3 done
+  round 2/3 done
+  round 3/3 done
+wrote endpoints-dubai.csv
+13:53:18 C memory fit
+{
+ "primary_window": {
+  "from": "2026-09-14T21:09:10Z",
+  "to": "2026-09-30T08:59:58Z",
+  "n": 2595,
+  "uptime_at_end_days": 15.52,
+  "sample_interval_s": 300,
+  "gaps_over_10min": 4
+ },
+ "r2_and_resid_sd": {
+  "heapUsedMB": {
+   "M0 intercept only": [
+    0.0,
+    29.48
+   ],
+   "M1 vehicleStates": [
+    0.2358,
+    25.78
+   ],
+   "M2 lbLastFixes": [
+    0.2206,
+    26.03
+   ],
+   "M3 lbVehicleTotals": [
+    0.6556,
+    17.31
+   ],
+   "M4 vehicleStates + lbVehicleTotals": [
+    0.7915,
+    13.47
+   ],
+   "M5 vehicleStates + lbVehicleTotals + uptimeDays": [
+    0.8024,
+    13.11
+   ],
+   "M6 M5 + events + eventMembers + eventPassages": [
+    0.8042,
+    13.06
+   ],
+   "M7 M5 + eventMembers + per-id caches": [
+    0.8062,
+    13.0
+   ],
+   "M8 everything that varies": [
+    0.8172,
+    12.64
+   ]
+  },
+  "rssMB": {
+   "M0 intercept only": [
+    -0.0,
+    95.21
+   ],
+   "M1 vehicleStates": [
+    0.0053,
+    94.98
+   ],
+   "M2 lbLastFixes": [
+    0.0054,
+    94.97
+   ],
+   "M3 lbVehicleTotals": [
+    0.0638,
+    92.14
+   ],
+   "M4 vehicleStates + lbVehicleTotals": [
+    0.0651,
+    92.1
+   ],
+   "M5 vehicleStates + lbVehicleTotals + uptimeDays": [
+    0.1487,
+    87.9
+   ],
+   "M6 M5 + events + eventMembers + eventPassages": [
+    0.4089,
+    73.29
+   ],
+   "M7 M5 + eventMembers + per-id caches": [
+    0.8038,
+    42.23
+   ],
+   "M8 everything that varies": [
+    0.8784,
+    33.29
+   ]
+  }
+ }
+}
+13:53:20 E storage
+bus-traces 144025799 8768876 16.43 
+bus-traces (RAW jsonl, as on the server) 762552138 8803814 86.62 gzip ratio 5.27x; 16.44 gz bytes per fix; lines in file 8803814 vs rollup totals.fixes 8803814; vehicles 8910, journeys 150674
+bus-rollups 302932 2142 141.49 
+diversions 1308330 5411 241.79 
+tube-status 4725349 131 35634.68 
+road-disruptions 168341 4 42085.25 
+leaderboard 2300319 22930 100.26 
+route-snapshots 8293599   
+arrivals 202730796   
+13:53:31 D profile run
+seeded: 1955 learned routes from 2026-09-30.tar.gz
+node v24.13.0, commit 6875e27
+server up (pid 13203)
+server stopped; profile: CPU.20260930.135331.13203.0.001.cpuprofile
+14:06:33 D control run
+seeded: 1955 learned routes from 2026-09-30.tar.gz
+node v24.13.0, commit 6875e27
+server up (pid 14036)
+server stopped; profile: 
+14:12:36 D analyse
+
+== quiet (pipeline only, no viewer): main thread 1.34%, process 0.0572
+   14798.74 ms/15s  idle
+      39.60 ms/15s  node I/O glue: TLS, sockets, streams, zlib bindings
+      32.71 ms/15s  BODS parse + vehicle table
+      27.37 ms/15s  GC
+      24.80 ms/15s  leaderboard sampling
+      21.77 ms/15s  upstream fetch: undici client
+      20.75 ms/15s  (program): native code outside JS
+      16.06 ms/15s  upstream body: JSON.parse (TfL, Darwin, EA)
+      10.86 ms/15s  diversion detector
+       2.82 ms/15s  trace writer
+       1.51 ms/15s  upstream body: UTF-8 decode to string (BODS XML)
+       1.15 ms/15s  AIS stream
+       1.05 ms/15s  measurement overhead (preload)
+       0.47 ms/15s  status + disruption shaping
+       0.31 ms/15s  serve: routes, serialise, compress (main thread)
+
+== viewer (pipeline + one synthetic viewer): main thread 1.94%, process 0.0703
+   14709.00 ms/15s  idle
+      58.26 ms/15s  node I/O glue: TLS, sockets, streams, zlib bindings
+      44.98 ms/15s  GC
+      32.88 ms/15s  BODS parse + vehicle table
+      28.79 ms/15s  (program): native code outside JS
+      27.40 ms/15s  serve: routes, serialise, compress (main thread)
+      27.26 ms/15s  leaderboard sampling
+      26.43 ms/15s  upstream body: JSON.parse (TfL, Darwin, EA)
+      24.80 ms/15s  upstream fetch: undici client
+      10.92 ms/15s  diversion detector
+       2.28 ms/15s  trace writer
+       1.90 ms/15s  status + disruption shaping
+       1.77 ms/15s  upstream body: UTF-8 decode to string (BODS XML)
+       1.42 ms/15s  AIS stream
+       1.20 ms/15s  measurement overhead (preload)
+       0.40 ms/15s  tide gauges
+       0.33 ms/15s  logging (pino)
+14:12:37 B upstreams
+  BODS SIRI-VM (all-London bbox): status 200, wire 1138856, decoded 7586193
+  BODS SIRI-VM (all-London bbox): status 200, wire 1135649, decoded 7586260
+  BODS SIRI-VM (all-London bbox): status 200, wire 1136370, decoded 7583734
+  TfL /Line/{25 ids}/Arrivals: status 200, wire 311885, decoded 7433728
+  TfL /Line/{25 ids}/Arrivals: status 200, wire 313319, decoded 7413368
+  TfL /Line/{25 ids}/Arrivals: status 200, wire 307468, decoded 7379278
+  TfL /Line/{rail ids}/Status/{from}/to/{to} (detail): status 200, wire 20547, decoded 640661
+  TfL /Road/all/Disruption: status 200, wire 33613, decoded 270914
+  TfL /StopPoint/Mode/bus/Disruption: status 200, wire 12534, decoded 174642
+  Darwin LDBWS GetDepBoardWithDetails (WAT): status 200, wire 55110, decoded 55110
+  ADS-B airplanes.live /v2/point (30 nm): status 403, wire None, decoded None
+14:13:40 B streams
+bus positions | 15 | 1136370 | 7586193 | 8454 | 563.6 | 505746.2 | 43696471680 | 6545491200
+bus positions, after de-duplication (new fixes only) | 15 |  | 186030 | 2147.9 | 143.19 | 12402.0 | 1071532800 | 
+train arrival predictions (no viewer) | 15.0 | 311885 | 7413368 | 8084 | 538.93 | 494224.53 | 42700999680 | 1796457600
+train arrival predictions (one viewer polling at 10 s) | 8.8 | 311885 | 7413368 | 8084 | 918.64 | 842428.18 | 72785794909 | 3062143636
+National Rail departure boards | 15.0 | 102213 | 102213 | 20 | 1.33 | 6814.2 | 588746880 | 588746880
+rail line status, 7-day window with detail | 120.0 | 20547 | 640661 | 20 | 0.17 | 5338.84 | 461275919 | 14793840
+rail line status by mode (no detail) | 120.0 | 1461 |  |  |  |  |  | 1051920
+road disruptions | 120 | 33613 | 270914 | 117 | 0.97 | 2257.62 | 195058080 | 24201360
+bus stop closures | 300 | 12534 | 174642 | 421 | 1.4 | 582.14 | 50296896 | 3609792
+tide gauges | 300 | 7960 |  | 10 | 0.03 |  |  | 2292480
+vessel positions |  |  |  | 109 |  |  |  | 
+aircraft positions |  |  | 55110 | 104 |  |  |  | 
+docked bikes (GBFS) | 60 |  |  | 0 | 0.0 |  |  | 
+14:13:40 ALL DONE

@@ -1,0 +1,3 @@
+deployment,endpoint,path,measured_utc,samples_ok,raw_bytes_median,gzip_wire_bytes_median,br_wire_bytes_median,raw_over_br,records_median,count_basis,raw_bytes_per_record,br_bytes_per_record,ttfb_ms_median,total_ms_median,x_cache,cf_cache_status,age_s_median,cache_control,method
+london,nr-board (VIC),/api/nr-board,2026-09-29T22:29:39Z..2026-09-29T22:31:54Z,5,14032,2249,2226,6.3,18,services[],779.6,123.7,290,300,hit|miss,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"
+london,nr-board (CLJ),/api/nr-board,2026-09-29T22:29:41Z..2026-09-29T22:31:56Z,5,14443,2697,2760,5.23,20,services[],722.1,138.0,717,721,hit|miss,DYNAMIC,,,"curl, Accept-Encoding br / gzip, wire = size_download, raw = decoded br body"

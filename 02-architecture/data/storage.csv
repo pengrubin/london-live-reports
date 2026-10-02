@@ -1,0 +1,10 @@
+dataset,format_in_archive,record,measured_on,source,days_in_archive,first_day,last_day,window_days,window,bytes_per_day_median,bytes_per_day_min,bytes_per_day_max,bytes_per_second_mean,records_per_day_median,bytes_per_record_median,bytes_per_year_at_median,all_days_total_bytes,note
+bus-traces,.jsonl.gz,GPS fix,2026-09-29,external volume,40,2026-08-21,2026-09-29,7,2026-09-23..2026-09-29,144025799,98948935,146202233,1575.2,8768876,16.43,52569416635,5248880789,
+"bus-traces (RAW jsonl, as on the server)",decompressed to a pipe,GPS fix,2026-09-29,external volume,1,2026-09-29,2026-09-29,1,2026-09-29,762552138,762552138,762552138,8825.8,8803814,86.62,278331530370,762552138,"gzip ratio 5.27x; 16.44 gz bytes per fix; lines in file 8803814 vs rollup totals.fixes 8803814; vehicles 8910, journeys 150674"
+bus-rollups,.json,route-direction,2026-09-29,external volume,41,2026-08-20,2026-09-29,7,2026-09-23..2026-09-29,302932,214060,304206,3.3,2142,141.49,110570180,11014632,
+diversions,.jsonl,transition line,2026-09-29,external volume,33,2026-08-28,2026-09-29,7,2026-09-23..2026-09-29,1308330,945950,1337018,14.2,5411,241.79,477540450,35355837,
+tube-status,.jsonl,snapshot line,2026-09-29,external volume,38,2026-08-23,2026-09-29,7,2026-09-23..2026-09-29,4725349,1747802,6118394,49.8,131,35634.68,1724752385,118736504,
+road-disruptions,.jsonl,snapshot line,2026-09-29,external volume,33,2026-08-28,2026-09-29,7,2026-09-23..2026-09-29,168341,152377,174961,1.9,4,42085.25,61444465,7946425,
+leaderboard,.json,vehicle total,2026-09-29,external volume,64,2026-07-25,2026-09-29,7,2026-09-23..2026-09-29,2300319,1622681,2340653,25.4,22930,100.26,839616435,130466835,
+route-snapshots,.tar.gz,learned route file,2026-09-29,external volume,57,2026-07-30,2026-09-29,7,2026-09-22..2026-09-29,8293599,8280763,8309242,96.0,,,3027163635,444523644,
+arrivals,.jsonl.gz,"sampler line (local sampler, not server state)",2026-09-29,external volume,2,2026-09-28,2026-09-29,2,2026-09-28..2026-09-29,202730796,123912053,281549540,2346.4,,,73996740722,405461593,
