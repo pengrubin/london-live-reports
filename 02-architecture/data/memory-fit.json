@@ -4,10 +4,10 @@
   "source": "/Users/hongweipeng/bus-archive/health-samples.jsonl",
   "method": "OLS (numpy lstsq) of heapUsedMB and rssMB on /health component counters; restarts = uptime decreases; first 30 min after each restart excluded; primary window = longest single-process uptime segment. Standard errors assume independent samples and are therefore too small: see residual_lag1_autocorrelation and effective_n_ar1.",
   "all_samples": {
-    "ok_samples": 5521,
+    "ok_samples": 6182,
     "from": "2026-09-04T12:19:01Z",
-    "to": "2026-09-30T12:49:58Z",
-    "restarts": 23,
+    "to": "2026-10-02T22:27:35Z",
+    "restarts": 26,
     "restart_times_utc": [
       "2026-09-04T12:24:01Z",
       "2026-09-04T12:44:01Z",
@@ -31,7 +31,10 @@
       "2026-09-11T18:29:07Z",
       "2026-09-14T20:39:10Z",
       "2026-09-30T09:04:58Z",
-      "2026-09-30T09:39:58Z"
+      "2026-09-30T09:39:58Z",
+      "2026-10-01T17:12:34Z",
+      "2026-10-01T22:32:34Z",
+      "2026-10-02T10:07:35Z"
     ]
   },
   "primary_window": {
@@ -1126,25 +1129,25 @@
           "vehicleStates"
         ],
         "dropped_constant_regressors": [],
-        "n": 5421,
+        "n": 6063,
         "coefficients": {
           "intercept": {
-            "value": 214.723720831804,
-            "std_error_iid": 1.285670895896321,
+            "value": 212.2416037063457,
+            "std_error_iid": 1.2317448312905053,
             "unit": "MB"
           },
           "vehicleStates": {
-            "value": 0.004793933349315317,
-            "std_error_iid": 0.00017187659295653831,
+            "value": 0.004663203743902446,
+            "std_error_iid": 0.00016337020427606555,
             "unit": "MB per item",
-            "kb_per_item": 4.909
+            "kb_per_item": 4.7751
           }
         },
-        "r2": 0.1255,
-        "adjusted_r2": 0.1254,
-        "residual_sd_mb": 40.35,
-        "residual_lag1_autocorrelation": 0.873,
-        "effective_n_ar1": 368,
+        "r2": 0.1185,
+        "adjusted_r2": 0.1184,
+        "residual_sd_mb": 40.65,
+        "residual_lag1_autocorrelation": 0.879,
+        "effective_n_ar1": 389,
         "design_condition_number": 1.0,
         "vif": {}
       },
@@ -1155,31 +1158,31 @@
           "lbVehicleTotals"
         ],
         "dropped_constant_regressors": [],
-        "n": 5421,
+        "n": 6063,
         "coefficients": {
           "intercept": {
-            "value": 149.70547173657408,
-            "std_error_iid": 1.4708884969896365,
+            "value": 153.89513951799304,
+            "std_error_iid": 1.218303380532647,
             "unit": "MB"
           },
           "vehicleStates": {
-            "value": 0.0037395844147826798,
-            "std_error_iid": 0.000134319014712836,
+            "value": 0.003755081433216354,
+            "std_error_iid": 0.00012087102229601534,
             "unit": "MB per item",
-            "kb_per_item": 3.8293
+            "kb_per_item": 3.8452
           },
           "lbVehicleTotals": {
-            "value": 0.0002936698464056093,
-            "std_error_iid": 4.888217153747912e-06,
+            "value": 0.00027797121118023076,
+            "std_error_iid": 3.878878581236918e-06,
             "unit": "MB per item",
-            "kb_per_item": 0.3007
+            "kb_per_item": 0.2846
           }
         },
-        "r2": 0.4752,
-        "adjusted_r2": 0.475,
-        "residual_sd_mb": 31.26,
-        "residual_lag1_autocorrelation": 0.787,
-        "effective_n_ar1": 644,
+        "r2": 0.5229,
+        "adjusted_r2": 0.5227,
+        "residual_sd_mb": 29.91,
+        "residual_lag1_autocorrelation": 0.777,
+        "effective_n_ar1": 760,
         "design_condition_number": 1.1,
         "vif": {
           "vehicleStates": 1.0,
@@ -1194,41 +1197,41 @@
           "uptimeDays"
         ],
         "dropped_constant_regressors": [],
-        "n": 5421,
+        "n": 6063,
         "coefficients": {
           "intercept": {
-            "value": 153.66655044234724,
-            "std_error_iid": 1.6040060359775712,
+            "value": 156.66368321853105,
+            "std_error_iid": 1.260661552512676,
             "unit": "MB"
           },
           "vehicleStates": {
-            "value": 0.003788164544697343,
-            "std_error_iid": 0.00013411227922127575,
+            "value": 0.0038026937368474713,
+            "std_error_iid": 0.00012039771608003615,
             "unit": "MB per item",
-            "kb_per_item": 3.8791
+            "kb_per_item": 3.894
           },
           "lbVehicleTotals": {
-            "value": 0.0002599375008530371,
-            "std_error_iid": 7.379577032359736e-06,
+            "value": 0.0002471339776215178,
+            "std_error_iid": 5.4595134040900065e-06,
             "unit": "MB per item",
-            "kb_per_item": 0.2662
+            "kb_per_item": 0.2531
           },
           "uptimeDays": {
-            "value": 0.9880655656596959,
-            "std_error_iid": 0.16235272024902353,
+            "value": 1.1082945308637147,
+            "std_error_iid": 0.1387997126497181,
             "unit": "MB per day"
           }
         },
-        "r2": 0.4787,
-        "adjusted_r2": 0.4784,
-        "residual_sd_mb": 31.16,
-        "residual_lag1_autocorrelation": 0.786,
-        "effective_n_ar1": 649,
-        "design_condition_number": 2.7,
+        "r2": 0.5278,
+        "adjusted_r2": 0.5276,
+        "residual_sd_mb": 29.76,
+        "residual_lag1_autocorrelation": 0.775,
+        "effective_n_ar1": 769,
+        "design_condition_number": 2.4,
         "vif": {
           "vehicleStates": 1.0,
-          "lbVehicleTotals": 2.3,
-          "uptimeDays": 2.3
+          "lbVehicleTotals": 2.0,
+          "uptimeDays": 2.0
         }
       }
     },
@@ -1239,25 +1242,25 @@
           "vehicleStates"
         ],
         "dropped_constant_regressors": [],
-        "n": 5421,
+        "n": 6063,
         "coefficients": {
           "intercept": {
-            "value": 723.730754057588,
-            "std_error_iid": 3.8710840336251513,
+            "value": 712.1255490995557,
+            "std_error_iid": 3.712655323117916,
             "unit": "MB"
           },
           "vehicleStates": {
-            "value": -0.00016068723207112224,
-            "std_error_iid": 0.0005175109251299405,
+            "value": -0.0003346864346996856,
+            "std_error_iid": 0.000492421192390086,
             "unit": "MB per item",
-            "kb_per_item": -0.1645
+            "kb_per_item": -0.3427
           }
         },
-        "r2": 0.0,
-        "adjusted_r2": -0.0002,
-        "residual_sd_mb": 121.48,
-        "residual_lag1_autocorrelation": 0.985,
-        "effective_n_ar1": 40,
+        "r2": 0.0001,
+        "adjusted_r2": -0.0001,
+        "residual_sd_mb": 122.53,
+        "residual_lag1_autocorrelation": 0.986,
+        "effective_n_ar1": 43,
         "design_condition_number": 1.0,
         "vif": {}
       },
@@ -1268,31 +1271,31 @@
           "lbVehicleTotals"
         ],
         "dropped_constant_regressors": [],
-        "n": 5421,
+        "n": 6063,
         "coefficients": {
           "intercept": {
-            "value": 568.9953694418998,
-            "std_error_iid": 4.951468299285762,
+            "value": 573.9204163697374,
+            "std_error_iid": 4.225490757060407,
             "unit": "MB"
           },
           "vehicleStates": {
-            "value": -0.002669907184535497,
-            "std_error_iid": 0.0004521595924525007,
+            "value": -0.002485753619818587,
+            "std_error_iid": 0.00041922184216952417,
             "unit": "MB per item",
-            "kb_per_item": -2.734
+            "kb_per_item": -2.5454
           },
           "lbVehicleTotals": {
-            "value": 0.000698897882762828,
-            "std_error_iid": 1.6455259746978765e-05,
+            "value": 0.0006584297552670019,
+            "std_error_iid": 1.3453271044532713e-05,
             "unit": "MB per item",
-            "kb_per_item": 0.7157
+            "kb_per_item": 0.6742
           }
         },
-        "r2": 0.2498,
-        "adjusted_r2": 0.2495,
-        "residual_sd_mb": 105.23,
-        "residual_lag1_autocorrelation": 0.98,
-        "effective_n_ar1": 55,
+        "r2": 0.2833,
+        "adjusted_r2": 0.2831,
+        "residual_sd_mb": 103.74,
+        "residual_lag1_autocorrelation": 0.979,
+        "effective_n_ar1": 62,
         "design_condition_number": 1.1,
         "vif": {
           "vehicleStates": 1.0,
@@ -1307,41 +1310,41 @@
           "uptimeDays"
         ],
         "dropped_constant_regressors": [],
-        "n": 5421,
+        "n": 6063,
         "coefficients": {
           "intercept": {
-            "value": 542.2081610662597,
-            "std_error_iid": 5.343251399545579,
+            "value": 568.2040181758553,
+            "std_error_iid": 4.387230117246486,
             "unit": "MB"
           },
           "vehicleStates": {
-            "value": -0.0029984353859679146,
-            "std_error_iid": 0.0004467536951683573,
+            "value": -0.002584061942143615,
+            "std_error_iid": 0.0004189962682539373,
             "unit": "MB per item",
-            "kb_per_item": -3.0704
+            "kb_per_item": -2.6461
           },
           "lbVehicleTotals": {
-            "value": 0.0009270163919959253,
-            "std_error_iid": 2.458278486600529e-05,
+            "value": 0.0007221014633152029,
+            "std_error_iid": 1.8999660602161283e-05,
             "unit": "MB per item",
-            "kb_per_item": 0.9493
+            "kb_per_item": 0.7394
           },
           "uptimeDays": {
-            "value": -6.681896564576954,
-            "std_error_iid": 0.5408280145042778,
+            "value": -2.288370182954973,
+            "std_error_iid": 0.48303708349658614,
             "unit": "MB per day"
           }
         },
-        "r2": 0.2704,
-        "adjusted_r2": 0.27,
-        "residual_sd_mb": 103.79,
+        "r2": 0.286,
+        "adjusted_r2": 0.2856,
+        "residual_sd_mb": 103.55,
         "residual_lag1_autocorrelation": 0.979,
-        "effective_n_ar1": 57,
-        "design_condition_number": 2.7,
+        "effective_n_ar1": 63,
+        "design_condition_number": 2.4,
         "vif": {
           "vehicleStates": 1.0,
-          "lbVehicleTotals": 2.3,
-          "uptimeDays": 2.3
+          "lbVehicleTotals": 2.0,
+          "uptimeDays": 2.0
         }
       }
     }
@@ -1448,8 +1451,8 @@
     }
   },
   "pooled_window": {
-    "n": 5421,
-    "segments_used": 9,
+    "n": 6063,
+    "segments_used": 12,
     "note": "spans several builds; coefficients are not comparable to the primary window"
   },
   "by_hour_utc_primary_window": {

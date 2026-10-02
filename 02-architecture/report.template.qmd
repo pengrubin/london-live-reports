@@ -204,7 +204,7 @@ with $R^2$ = {{heap_fit_r2}} and a residual standard deviation of {{heap_fit_res
 
 Resident memory is larger, {{prod_rss_median_mb|int}} MB at the median, and does not fit the counters. It includes {{prod_external_median_mb|int}} MB of buffers outside the JavaScript heap (bodies in flight, compression state) and whatever the runtime has reserved and not returned. The gap between heap and resident size is what a memory ceiling must be set against.
 
-![Production heap over {{heap_fit_days}} days of one process, observed and as predicted by @eq-heap from the two counters below it. The daily wave is vehicle states; the slow rise is the open leaderboard periods. Sampled every five minutes from the process's health endpoint; gaps are where the sampler was offline.](figures/fig-2-heap-fit.png){#fig-heap width=100%}
+![Production heap over {{heap_fig_days}} days, observed and as predicted by @eq-heap from the two counters below it. The model is fitted on the first {{heap_fit_days}} days (one process); the shaded days after it are deploys of later builds, on which the same coefficients are applied unchanged. The daily wave is vehicle states; the slow rise is the open leaderboard periods. Sampled every five minutes from the process's health endpoint, from a laptop: the gaps are where it was switched off, and they are permanent for that window. Latest sample {{heap_fig_to}}.](figures/fig-2-heap-fit.png){#fig-heap width=100%}
 
 **Storage.** None; this stage is the reason stage 4 exists.
 

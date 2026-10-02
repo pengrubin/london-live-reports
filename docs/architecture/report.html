@@ -280,7 +280,7 @@ Table&nbsp;1: Parameters used throughout. Values are the reference deployment’
 <tr class="even">
 <td><span class="math inline">\(L\)</span>, <span class="math inline">\(L_{open}\)</span></td>
 <td>leaderboard entries: closed per day, and held across the three open periods</td>
-<td>22,930 per day; 195,381 to 475,489 open</td>
+<td>22,930 per day; 30,053 to 475,489 open</td>
 </tr>
 <tr class="odd">
 <td><span class="math inline">\(U\)</span></td>
@@ -528,9 +528,9 @@ Figure&nbsp;4: Main-thread CPU per 15 s bus poll by stage, from the profiled loc
 <p><strong>Input rate.</strong> Every record stage 1 keeps, <span class="math inline">\(V\)</span> bus records per poll and <span class="math inline">\(P\)</span> predictions per fetch, is written into this stage; the tables turn over completely each poll.</p>
 <p><strong>Output rate.</strong> Reads by stages 3 and 5: one pass over <span class="math inline">\(V\)</span> per poll for the detector and the leaderboard, one serialisation of a table per served request.</p>
 <p><strong>CPU.</strong> Table construction is inside the parse figure of <a href="#sec-ingest" class="quarto-xref">Section&nbsp;4.1</a>. The state’s own cost is indirect and shows up as garbage collection: 27.4 ms per poll with no viewer, 45 ms with one, because each poll allocates a fresh table and each served response allocates a body.</p>
-<p><strong>Memory.</strong> This is the stage the heap belongs to, and it is where the durable formula lives. Over 2,595 five-minute samples of the production process (15.5 days of uptime), heap used is fitted by two counters that the process reports about itself (<a href="#fig-heap" class="quarto-xref">Figure&nbsp;5</a>):</p>
+<p><strong>Memory.</strong> This is the stage the heap belongs to, and it is where the durable formula lives. Over 2,595 five-minute samples of the production process (15.52 days of uptime), heap used is fitted by two counters that the process reports about itself (<a href="#fig-heap" class="quarto-xref">Figure&nbsp;5</a>):</p>
 <p><span id="eq-heap"><span class="math display">\[ \text{heap} \approx 146\ \text{MB} + 3.48\ \text{KB} \cdot S + 0.326\ \text{KB} \cdot L_{open}  \tag{2}\]</span></span></p>
-<p>with <span class="math inline">\(R^2\)</span> = 0.79 and a residual standard deviation of 13.47 MB. The intercept is the baked geometry, the route indexes and the runtime; the first slope is everything held per followed bus, tables, detector state and trace bookkeeping together; the second is the leaderboard’s per-vehicle totals across the three open periods, <span class="math inline">\(L_{open}\)</span>, which grows through a month and drops when the month closes. The counters themselves ran from 56 to 10,288 vehicle states and 195,381 to 475,489 leaderboard entries in the window, so the fit is interpolating, not extrapolating. Production sits at a median of 266 MB heap (320 MB at the 95th percentile); the day-to-night swing in <a href="#fig-heap" class="quarto-xref">Figure&nbsp;5</a> is the <span class="math inline">\(S\)</span> term.</p>
+<p>with <span class="math inline">\(R^2\)</span> = 0.79 and a residual standard deviation of 13.47 MB. The intercept is the baked geometry, the route indexes and the runtime; the first slope is everything held per followed bus, tables, detector state and trace bookkeeping together; the second is the leaderboard’s per-vehicle totals across the three open periods, <span class="math inline">\(L_{open}\)</span>, which grows through a month and drops when the month closes. The counters themselves ran from 56 to 10,293 vehicle states and 30,053 to 475,489 leaderboard entries in the window, so the fit is interpolating, not extrapolating. Production sits at a median of 266 MB heap (320 MB at the 95th percentile); the day-to-night swing in <a href="#fig-heap" class="quarto-xref">Figure&nbsp;5</a> is the <span class="math inline">\(S\)</span> term.</p>
 <p>Resident memory is larger, 858 MB at the median, and does not fit the counters. It includes 73 MB of buffers outside the JavaScript heap (bodies in flight, compression state) and whatever the runtime has reserved and not returned. The gap between heap and resident size is what a memory ceiling must be set against.</p>
 <div id="fig-heap" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -538,7 +538,7 @@ Figure&nbsp;4: Main-thread CPU per 15 s bus poll by stage, from the profiled loc
 <img src="figures/fig-2-heap-fit.png" class="img-fluid figure-img" style="width:100.0%">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-heap-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Production heap over 15.5 days of one process, observed and as predicted by <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a> from the two counters below it. The daily wave is vehicle states; the slow rise is the open leaderboard periods. Sampled every five minutes from the process’s health endpoint; gaps are where the sampler was offline.
+Figure&nbsp;5: Production heap over 18.1 days, observed and as predicted by <a href="#eq-heap" class="quarto-xref">Equation&nbsp;2</a> from the two counters below it. The model is fitted on the first 15.52 days (one process); the shaded days after it are deploys of later builds, on which the same coefficients are applied unchanged. The daily wave is vehicle states; the slow rise is the open leaderboard periods. Sampled every five minutes from the process’s health endpoint, from a laptop: the gaps are where it was switched off, and they are permanent for that window. Latest sample 2026-10-02.
 </figcaption>
 </figure>
 </div>
