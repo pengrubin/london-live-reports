@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>London Live health</title>
+<style>
+  :root { --ink: #1f2a37; --muted: #6b7480; --red: #c8102e; --bg: #ffffff; --line: rgba(128,128,128,.25); --cell: rgba(128,128,128,.06); }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e8ecf1; --muted: #9aa3ad; --bg: #0f1115; --cell: rgba(255,255,255,.04); } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 28px 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  a { color: var(--red); text-decoration: none; } a:hover { text-decoration: underline; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 6px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:nth-child(even) td { background: var(--cell); }
+  .status { display: inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 600; font-size: 14px; }
+  .ok { background: #2e8b5722; color: #2e8b57; } .bad { background: #c8102e22; color: var(--red); }
+  .meta { color: var(--muted); font-size: 14px; }
+  .err { color: var(--red); }
+  button { font: inherit; padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; }
+  pre { font-size: 13px; overflow: auto; background: var(--cell); padding: 12px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>London Live health</h1>
+  <p class="sub">The running backend's own counters, read live from <a href="https://london.pengrubin.com/health">london.pengrubin.com/health</a>. The second technical note explains what each one measures. <a href="./">Back to the notes</a>.</p>
+
+  <p><span id="status" class="status">loading…</span> <span id="meta" class="meta"></span> <button id="refresh">Refresh</button></p>
+  <p id="error" class="err" hidden></p>
+
+  <h2>Process</h2>
+  <table id="process"><tbody></tbody></table>
+
+  <h2>Memory</h2>
+  <table id="memory"><tbody></tbody></table>
+
+  <h2>Components</h2>
+  <p class="meta">Live table sizes and counters. Vehicle states and leaderboard totals are the two counters the heap model in the second note is fitted on.</p>
+  <table id="components"><thead><tr><th>Counter</th><th class="n">Value</th><th>What it counts</th></tr></thead><tbody></tbody></table>
+
+  <h2>Raw</h2>
+  <pre id="raw"></pre>
+</main>
+<script>
+const URL_ = 'https://london.pengrubin.com/health';
+const DESC = {
+  vehicleStates: 'buses the diversion detector is following (30-minute window)',
+  routeIndexes: 'learned route-directions loaded as spatial grids',
+  shapeGates: 'learned routes with a 256-sample shape gate',
+  events: 'open diversion events', eventMembers: 'buses attached to open events', eventPassages: 'route passages recorded for open events',
+  upstreamAssertionsSurvived: 'HTTP-client assertion failures caught (should stay 0)', httpParserFixed: '1 when the undici parser guard is active',
+  lbBuckets: 'open leaderboard periods (day, week, month)', lbVehicleTotals: 'per-vehicle distance totals across open periods', lbLastFixes: 'vehicles with a recent fix in the leaderboard',
+  cacheArrivals: 'cached train-prediction bodies', cacheStopArrivals: 'cached stop-arrival bodies (popups)', cacheVehicleArrivals: 'cached vehicle-arrival bodies (popups)',
+  cacheStopDetail: 'cached stop details', cacheCrowding: 'cached crowding bodies', cacheLiftDisruptions: 'cached lift-disruption body', cacheBikePoints: 'cached bike-point bodies',
+  cacheDisruptions: 'cached shaped line-disruption body', cacheBusStopClosures: 'cached shaped stop-closure body',
+  disruptionsItems: 'disruption notices in the last shaped body', disruptionsSections: 'route sections resolved from notices', disruptionsStops: 'stops resolved from notices',
+  disruptionsSectionsDropped: 'sections that could not be resolved', disruptionsStopsDropped: 'stops that could not be resolved', disruptionsLinesDropped: 'notices on unknown lines', disruptionsLastParseMs: 'time to shape the last disruption body, ms',
+  busStopClosuresStops: 'closed stops in the last shaped body', busStopClosuresDropped: 'closures dropped', busStopClosuresUnresolved: 'closures with no known stop', busStopClosuresNotInForce: 'closures outside their validity window', busStopClosuresBudgetDeferred: 'stop lookups deferred for budget', busStopClosuresLastShapeMs: 'time to shape the last closure body, ms',
+  evictStopArrivals: 'cache evictions (stop arrivals)', evictVehicleArrivals: 'cache evictions (vehicle arrivals)', evictStopDetail: 'cache evictions (stop detail)', evictCrowding: 'cache evictions (crowding)',
+};
+const fmt = (n) => typeof n === 'number' ? n.toLocaleString('en-GB') : String(n);
+const uptime = (s) => { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return `${d} d ${h} h ${m} min`; };
+function rows(tbody, pairs) { tbody.innerHTML = pairs.map(([k, v, d]) => `<tr><td>${k}</td><td class="n">${v}</td>${d !== undefined ? `<td class="meta">${d}</td>` : ''}</tr>`).join(''); }
+async function load() {
+  const status = document.getElementById('status'), meta = document.getElementById('meta'), err = document.getElementById('error');
+  status.textContent = 'loading…'; status.className = 'status'; err.hidden = true;
+  try {
+    const t0 = performance.now();
+    const res = await fetch(URL_, { cache: 'no-store' });
+    const ms = Math.round(performance.now() - t0);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const h = await res.json();
+    status.textContent = h.status === 'ok' ? 'ok' : h.status; status.className = 'status ' + (h.status === 'ok' ? 'ok' : 'bad');
+    meta.textContent = `read at ${new Date().toLocaleTimeString('en-GB')} in ${ms} ms`;
+    rows(document.querySelector('#process tbody'), [['Status', h.status], ['Uptime', `${uptime(h.uptimeS)} (${fmt(h.uptimeS)} s)`]]);
+    const m = h.memory || {};
+    rows(document.querySelector('#memory tbody'), [['Resident set size', `${fmt(m.rssMB)} MB`], ['Heap used', `${fmt(m.heapUsedMB)} MB`], ['Heap total', `${fmt(m.heapTotalMB)} MB`], ['External (buffers)', `${fmt(m.externalMB)} MB`]]);
+    rows(document.querySelector('#components tbody'), Object.entries(h.components || {}).map(([k, v]) => [k, fmt(v), DESC[k] || '']));
+    document.getElementById('raw').textContent = JSON.stringify(h, null, 1);
+  } catch (e) {
+    status.textContent = 'unavailable'; status.className = 'status bad';
+    err.hidden = false; err.textContent = `Could not read the health endpoint from this page (${e.message}). If the backend does not allow this origin, open the raw JSON directly: ${URL_}`;
+  }
+}
+document.getElementById('refresh').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
