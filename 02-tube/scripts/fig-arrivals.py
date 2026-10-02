@@ -17,22 +17,28 @@ COL = {'tube': INK, 'dlr': RED, 'overground': AMBER, 'elizabeth': GREEN, 'tram':
 def bins(h):
     return sorted((int(float(k)), v) for k, v in h.get('bins', {}).items())
 
-# fig v.1 residual
-fig, ax = plt.subplots(figsize=(7.2, 2.6))
+# fig v.1 residual: broken y axis so the 0 s bin (38-98%) and the ±30 / ±60 s lobes (<12%) are both visible
+fig, (axt, axb) = plt.subplots(2, 1, figsize=(7.2, 3.6), sharex=True, gridspec_kw={'height_ratios': [1, 2.2], 'hspace': 0.08})
 for m in MODES:
     h = M['residual'].get(m)
     if not h or not h['n']: continue
-    xs, ys = zip(*bins(h)); og = m == 'overground'
-    ax.step(xs, [y / h['n'] * 100 for y in ys], where='mid', color=COL[m], ls='--' if og else '-', zorder=3 if og else 2,
-            label=f"{m} (n={h['n']:,})")
-RESID_YMAX = 12   # the 0 s bin (38–97%) would flatten the ±30 s / ±60 s lobes that are the finding; its heights are printed
+    xs, ys = zip(*bins(h)); og = m == 'overground'; pct = [y / h['n'] * 100 for y in ys]
+    for ax in (axt, axb):
+        ax.step(xs, pct, where='mid', color=COL[m], ls='--' if og else '-', zorder=3 if og else 2, label=f"{m} (n={h['n']:,})")
+RESID_YMAX = 12
+axb.set_ylim(0, RESID_YMAX); axt.set_ylim(30, 102)
+for ax in (axt, axb): ax.axvline(0, color=LIGHT, lw=1, zorder=0); ax.set_xlim(-120, 120)
+axt.spines['bottom'].set_visible(False); axb.spines['top'].set_visible(False); axt.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+# break marks
+d = 0.012
+for ax, y in ((axt, 0), (axb, 1)):
+    ax.plot((-d, +d), (y - d, y + d), transform=ax.transAxes, color=INK, clip_on=False, lw=0.8)
 peaks = ', '.join(f"{m} {M['residual'][m]['bins'].get('0', 0) / M['residual'][m]['n'] * 100:.0f}%" for m in MODES if M['residual'].get(m, {}).get('n'))
-ax.text(-117, RESID_YMAX * 0.95, '0 s bin (clipped):\n' + peaks.replace(', ', '\n'), fontsize=7, va='top')
-ax.axvline(0, color=LIGHT, lw=1, zorder=0); ax.set_xlim(-120, 120); ax.set_ylim(0, RESID_YMAX)
-ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), ncol=3)
-ax.set_xlabel('(previous countdown − elapsed) − new countdown, s   [<0: countdown stalled or went back up]'); ax.set_ylabel('% of pairs')
-ax.set_title('Countdown advance residual between consecutive fresh polls, same train and station', loc='left')
-fig.tight_layout(); save(fig, 'fig-v-1-residual')
+axt.text(-117, 98, '0 s bin: ' + peaks, fontsize=7, va='top')
+axb.legend(loc='upper center', bbox_to_anchor=(0.5, -0.32), ncol=3)
+axb.set_xlabel('(previous countdown − elapsed) − new countdown, s   [<0: countdown stalled or went back up]'); axb.set_ylabel('% of pairs'); axt.set_ylabel('% of pairs')
+axt.set_title('Countdown advance residual between consecutive fresh polls, same train and station', loc='left')
+fig.subplots_adjust(left=0.08, right=0.99, top=0.9, bottom=0.3); save(fig, 'fig-v-1-residual')
 
 # fig v.2 accuracy vs horizon
 fig, ax = plt.subplots(figsize=(7.2, 2.8))
